@@ -1,7 +1,10 @@
+import asyncio
+from collections.abc import AsyncIterable
 from datetime import datetime, UTC
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.sse import EventSourceResponse
 from pydantic import BaseModel
 
 from backend.database import pool
@@ -22,9 +25,9 @@ class TelemetryValue(BaseModel):
     unit: str | None
     value: float
     quality: int
+    observed_at: datetime
 
 class LatestTelemetryResponse(BaseModel):
-    observed_at: datetime
     readings: list[TelemetryValue]
 
 class HistoricalTelemetryResponse(BaseModel):
@@ -61,52 +64,28 @@ async def get_telemetry_tags() -> list[TelemetryTagResponse]:
 
 @router.get("/latest", response_model=LatestTelemetryResponse)
 async def get_latest_telemetry() -> LatestTelemetryResponse:
-    query = """
-    SELECT
-        t.tag_key,
-        t.name,
-        t.unit,
-        tr.value,
-        tr.quality,
-        tr.observed_at
-    FROM telemetry_readings AS tr
-    JOIN tags as t 
-        ON t.id = tr.tag_id
-    WHERE tr.observed_at = (
-        SELECT MAX(observed_at)/*Get the latest telemetry reading*/
-        FROM telemetry_readings
-    )
-    ORDER BY t.id
-    """
+    telemetry = await fetch_latest_telemetry()
+    if telemetry is None:
+       raise HTTPException(
+           status_code=404,
+           detail="No telemetry readings available",
+       )
+    return telemetry
 
-    async with pool.connection() as conn:
-        async with conn.cursor() as cursor:
-            await cursor.execute(query)
-            rows = await cursor.fetchall()
+# TODO: currently sse will send out the whole telemetries even if only one has changed.
+#  I want to send out only those that have changed.
+@router.get("/stream", response_class=EventSourceResponse)
+async def stream_telemetry() -> AsyncIterable[LatestTelemetryResponse]:
+    last_telemetry: LatestTelemetryResponse | None = None
 
-    if not rows:
-        raise HTTPException(
-            status_code=404,
-            detail="No telemetry readings available",
-        )
+    while True:
+        telemetry = await fetch_latest_telemetry()
 
-    observed_at = rows[0][5]
+        if telemetry is not None:
+            last_telemetry = telemetry
+            yield telemetry
 
-    readings = [
-        TelemetryValue(
-            tag_key=row[0],
-            name=row[1],
-            unit=row[2],
-            value=row[3],
-            quality=row[4],
-        )
-        for row in rows
-    ]
-
-    return LatestTelemetryResponse(
-        observed_at=observed_at,
-        readings=readings
-    )
+        await asyncio.sleep(5) # let's try for 5 seconds for now
 
 @router.get("/history", response_model=list[HistoricalTelemetryResponse])
 async def get_telemetry_history(
@@ -172,3 +151,40 @@ async def get_telemetry_history(
         )
         for row in rows
     ]
+
+async def fetch_latest_telemetry() -> LatestTelemetryResponse | None:
+    query = """
+        SELECT DISTINCT ON (t.id)
+            t.tag_key,
+            t.name,
+            t.unit,
+            tr.value,
+            tr.quality,
+            tr.observed_at
+        FROM telemetry_readings AS tr
+        JOIN tags AS t
+            ON t.id = tr.tag_id
+        ORDER BY t.id, tr.observed_at DESC
+    """
+
+    async with pool.connection() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(query)
+            rows = await cursor.fetchall()
+
+    if not rows:
+        return None
+
+    return LatestTelemetryResponse(
+        readings=[
+            TelemetryValue(
+                tag_key=row[0],
+                name=row[1],
+                unit=row[2],
+                value=row[3],
+                quality=row[4],
+                observed_at=row[5]
+            )
+            for row in rows
+        ]
+    )
