@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from backend.config import settings
-from backend.routers import health
+from backend.routers import health, telemetry
 from backend.database import connect_db, disconnect_db
 
 @asynccontextmanager
@@ -21,4 +21,8 @@ app = FastAPI(
 app.include_router(
     health.router,
     prefix="/api",
+)
+app.include_router(
+    telemetry.router,
+    prefix="/api"
 )
