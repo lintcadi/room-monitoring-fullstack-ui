@@ -11,6 +11,11 @@ router = APIRouter(
     tags=["telemetry"],
 )
 
+class TelemetryTagResponse(BaseModel):
+    tag_key: str
+    name: str
+    unit: str | None
+
 class TelemetryValue(BaseModel):
     tag_key: str
     name: str
@@ -29,6 +34,30 @@ class HistoricalTelemetryResponse(BaseModel):
     unit: str | None
     value: float
     quality: int
+
+@router.get("/tags", response_model=list[TelemetryTagResponse])
+async def get_telemetry_tags() -> list[TelemetryTagResponse]:
+    query = """
+        SELECT
+            tag_key,
+            name,
+            unit
+        FROM tags
+        ORDER BY id
+    """
+
+    async with pool.connection() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(query)
+            rows = await cursor.fetchall()
+
+    return [
+        TelemetryTagResponse(
+            tag_key=row[0],
+            name=row[1],
+            unit=row[2]
+        ) for row in rows
+    ]
 
 @router.get("/latest", response_model=LatestTelemetryResponse)
 async def get_latest_telemetry() -> LatestTelemetryResponse:
