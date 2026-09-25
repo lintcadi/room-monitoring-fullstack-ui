@@ -1,11 +1,11 @@
 :root {
   color-scheme: light;
-  --background: #f7f8f4;
+  --background: #f5f5f0;
   --surface: #ffffff;
-  --text: #23392e;
-  --muted: #64736a;
+  --text: #273d34;
+  --muted: #69776e;
   --accent: #267653;
-  --line: #e0e6dd;
+  --line: #e1e6dc;
   font-family: Inter, 'Segoe UI', Arial, sans-serif;
   color: var(--text);
   background: var(--background);

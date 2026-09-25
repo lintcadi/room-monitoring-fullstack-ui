@@ -1,152 +1,116 @@
-<header class="topbar">
-  <a class="brand" href="/" aria-label="Room monitor home">
-    <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-    <span>Room monitor</span>
-  </a>
-  <span class="device-label"
-    >BME680 <span class="device-dot" aria-hidden="true">/</span> Environment sensor</span
-  >
-</header>
-<main id="main-content">
-  <div class="page-heading">
-    <div>
-      <p class="eyebrow">ROOM MONITORING <span>/</span> LIVE</p>
-      <h1>Live overview<span class="title-dot">.</span></h1>
-      <p class="intro">A little more insight into the air around you.</p>
-    </div>
-    <div class="connection" role="status" aria-live="polite">
-      <span
-        class="badge"
+<div class="dashboard-shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Room monitor home"
+      ><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>room<span
+        class="brand-light"
+        >/ monitor</span
+      ></a
+    >
+    <div class="topbar-right">
+      <span class="device-label">BME680</span
+      ><span
+        class="connection"
+        role="status"
         [attr.data-tone]="telemetry.connection() === 'live' ? 'good' : 'uncertain'"
         ><span class="dot" aria-hidden="true"></span>{{ connectionLabel() }}</span
       >
-      <span class="timezone">Asia/Taipei · UTC+08:00</span>
     </div>
-  </div>
-  <div class="overview-strip">
-    <div>
-      <span class="strip-label">READINGS AVAILABLE</span
-      ><strong
-        >{{ receivedCount() }} <span>/ {{ telemetry.tags().length }} tags</span></strong
-      >
-    </div>
-    <div>
-      <span class="strip-label">LAST HEARTBEAT</span
-      ><strong>{{ readingAge(heartbeat()?.reading?.observed_at, now()) }}</strong>
-    </div>
-    <p>Each tag has its own observation time.<br />Connection status describes the live stream.</p>
-  </div>
-  @if (telemetry.connection() !== 'live') {
-    <div class="notice" role="status">
+  </header>
+  <main id="main-content" class="workspace">
+    <div class="page-heading">
       <div>
-        @switch (telemetry.connection()) {
-          @case ('connecting') {
-            <strong>Connecting to live telemetry…</strong>
-          }
-          @case ('reconnecting') {
-            <strong>Connection interrupted. Reconnecting automatically…</strong>
-          }
-          @case ('unavailable') {
-            <strong>The backend cannot read telemetry right now.</strong>
-          }
-          @case ('invalid') {
-            <strong>The stream returned an unexpected response.</strong>
-          }
-        }
-        @if (telemetry.hasSnapshot()) {
-          <p>Showing the last received readings. Check their observation times.</p>
-        } @else {
-          <p>Waiting for the first snapshot from the sensor data.</p>
-        }
+        <p class="eyebrow">YOUR ENVIRONMENT, AT A GLANCE</p>
+        <h1>Room overview<span>.</span></h1>
       </div>
-      @if (telemetry.connection() !== 'connecting') {
-        <button type="button" (click)="telemetry.reconnect()">Reconnect</button>
-      }
-    </div>
-  }
-  @if (telemetry.metadataError()) {
-    <div class="notice" role="alert">
-      <div>
-        <strong>Couldn’t load the tag list.</strong>
-        <p>Retry to show the sensor’s readings and units.</p>
+      <div class="local-clock">
+        <strong>{{ clockLabel() }}</strong
+        ><span>Asia/Taipei</span>
       </div>
-      <button type="button" (click)="telemetry.loadTags()">Retry tag list</button>
     </div>
-  } @else if (telemetry.metadataLoading()) {
-    <div class="empty-state" role="status">
-      <h2>Loading sensor tags…</h2>
-      <p>The dashboard will appear when the tag list is available.</p>
-    </div>
-  } @else if (!telemetry.tags().length) {
-    <div class="empty-state">
-      <h2>No tags configured</h2>
-      <p>Tags will appear here once they’re available from the backend.</p>
-      <button type="button" (click)="telemetry.loadTags()">Refresh tag list</button>
-    </div>
-  } @else {
-    @if (telemetry.hasSnapshot() && !receivedCount()) {
-      <div class="notice" role="status">
-        <div>
-          <strong>No readings yet.</strong>
-          <p>The tags are ready. Waiting for their first observations.</p>
-        </div>
+    @if (telemetry.metadataLoading()) {
+      <div class="empty-state" role="status">
+        <h2>Finding your sensor…</h2>
+        <p>Loading the tag list.</p>
       </div>
-    }
-    @for (section of sections(); track section.id) {
-      <section [attr.aria-labelledby]="section.id">
-        <div class="section-heading">
-          <div>
-            <span class="section-number">{{ section.number }}</span>
-            <h2 [id]="section.id">{{ section.title }}</h2>
-          </div>
-          <p>{{ section.description }}</p>
-        </div>
-        <div class="reading-grid">
-          @for (tag of section.tags; track tag.id) {
-            <app-reading-card [tag]="tag" [now]="now()" [accuracy]="accuracy()" />
+    } @else if (!telemetry.tags().length) {
+      <div class="empty-state">
+        <h2>No tags available</h2>
+        <p>Your room readings will appear here.</p>
+        <button type="button" (click)="telemetry.loadTags()">Refresh tags</button>
+      </div>
+    } @else {
+      <div class="board">
+        <section class="primary-grid" aria-label="Primary measurements">
+          @for (tag of primary(); track tag.id) {
+            <app-reading-card
+              [class.iaq-card]="tag.tag_key === 'iaq'"
+              [tag]="tag"
+              [now]="now()"
+              [featured]="true"
+              (selected)="openDetails($event)"
+            />
           }
-        </div>
-      </section>
-    }
-    @if (diagnostics().length) {
-      <section aria-labelledby="diagnostics-title">
-        <div class="section-heading">
-          <div>
-            <span class="section-number">04</span>
+        </section>
+        <section class="secondary-grid" aria-label="Additional measurements">
+          @for (tag of secondary(); track tag.id) {
+            <app-reading-card [tag]="tag" [now]="now()" (selected)="openDetails($event)" />
+          }
+        </section>
+        <section class="diagnostics" aria-labelledby="diagnostics-title">
+          <div class="diagnostics-heading">
             <h2 id="diagnostics-title">Sensor diagnostics</h2>
+            <span>{{ receivedCount() }}/{{ telemetry.tags().length }} readings available</span>
           </div>
-          <p>Readiness, accuracy, and device activity.</p>
-        </div>
-        <div class="diagnostics">
-          <div class="diagnostic-header" aria-hidden="true">
-            <span>SIGNAL</span><span>LATEST VALUE</span><span>TELEMETRY QUALITY</span
-            ><span>OBSERVED · TAIPEI</span>
-          </div>
-          @for (tag of diagnostics(); track tag.id) {
-            <div class="diagnostic-row">
-              <h3>{{ tag.name }}</h3>
-              <span class="diagnostic-value">{{ displayValue(tag) }}</span>
-              <span
-                class="badge"
-                [attr.data-tone]="qualityTone(tag.reading?.quality)"
-                [attr.aria-label]="'Telemetry quality: ' + qualityLabel(tag.reading?.quality)"
-                ><span class="dot" aria-hidden="true"></span
-                >{{ qualityLabel(tag.reading?.quality) }}</span
+          <div class="diagnostic-grid">
+            @for (tag of diagnostics(); track tag.id) {
+              <button
+                class="diagnostic-row"
+                type="button"
+                (click)="openDetails(tag)"
+                [attr.aria-label]="
+                  tag.name +
+                  ': ' +
+                  displayValue(tag) +
+                  '. Quality: ' +
+                  qualityLabel(tag.reading?.quality) +
+                  '. View details.'
+                "
               >
-              <div class="diagnostic-time">
-                <span>{{ readingAge(tag.reading?.observed_at, now()) }}</span
-                ><time [attr.datetime]="tag.reading?.observed_at">{{
-                  observedTime(tag.reading?.observed_at)
-                }}</time>
-              </div>
-            </div>
-          }
-        </div>
-      </section>
+                <span class="diagnostic-label"
+                  >{{ diagnosticLabel(tag.tag_key, tag.name)
+                  }}<span
+                    class="quality-dot"
+                    [attr.data-tone]="qualityTone(tag.reading?.quality)"
+                    [title]="'Telemetry quality: ' + qualityLabel(tag.reading?.quality)"
+                    ><span class="dot" aria-hidden="true"></span></span
+                ></span>
+                <strong class="diagnostic-value">{{ displayValue(tag) }}</strong
+                ><span
+                  class="diagnostic-age"
+                  [title]="observedTime(tag.reading?.observed_at) + ' · Asia/Taipei'"
+                  >{{ readingAge(tag.reading?.observed_at, now()) }}</span
+                >
+              </button>
+            }
+          </div>
+        </section>
+      </div>
     }
-  }
+  </main>
   <footer class="page-footer">
-    <span>ROOM MONITOR <span class="footer-separator">/</span> BME680</span
-    ><span>CO₂ and breath VOC equivalents are estimates.</span>
+    @if (notice()) {
+      <div class="notice" role="status">
+        <span>{{ notice() }}</span>
+        @if (telemetry.metadataError()) {
+          <button type="button" (click)="telemetry.loadTags()">Retry tags</button>
+        } @else if (telemetry.connection() !== 'live' && telemetry.connection() !== 'connecting') {
+          <button type="button" (click)="telemetry.reconnect()">Reconnect</button>
+        }
+      </div>
+    } @else {
+      <span class="footer-hint">Select a reading for details <span aria-hidden="true">↗</span></span
+      ><span>CO₂ & VOC equivalents are estimates.</span>
+    }
   </footer>
-</main>
+</div>
+<app-reading-details #details [tag]="selectedTag()" (closed)="selectedId.set(null)" />

@@ -1,0 +1,377 @@
+:host {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+}
+.reading-card {
+  width: 100%;
+  height: 100%;
+  padding: clamp(12px, 1.5vw, 22px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  box-shadow: 0 2px 4px #203f3010;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.reading-card:hover {
+  border-color: #8fac9c;
+  background: #fcfdfb;
+}
+.featured {
+  padding: clamp(16px, 2vw, 28px);
+}
+.iaq {
+  background: #edf3ee;
+  border-color: #d9e5dc;
+  --gauge-track: #d8e5da;
+}
+.iaq:hover {
+  background: #e8f0e9;
+}
+.temperature {
+  --gauge-color: #bb8d60;
+}
+.humidity {
+  --gauge-color: #6a8d9c;
+}
+.bad-reading {
+  border-color: #c9958b;
+  --gauge-color: #a74c3d;
+}
+.card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.metric-name {
+  font-size: 0.76rem;
+  font-weight: 550;
+  line-height: 1.25;
+}
+.quality {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.6rem;
+  background: none;
+}
+.quality-text {
+  display: none;
+}
+.featured .quality-text {
+  display: inline;
+}
+.feature-body {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+.gauge-display {
+  display: block;
+  width: min(100%, 320px);
+  height: 100%;
+  max-height: 245px;
+  position: relative;
+}
+.gauge-display .measurement {
+  position: absolute;
+  inset: 51% 0 auto;
+  justify-content: center;
+}
+.measurement {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: clamp(21px, 2vw, 32px);
+  font-weight: 450;
+  line-height: 1.1;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+  margin: auto 0;
+  white-space: nowrap;
+}
+.featured .measurement {
+  font-size: clamp(40px, 5vw, 72px);
+}
+.unit {
+  font-size: 0.7rem;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+  font-weight: 400;
+}
+.featured .unit {
+  font-size: 1.1rem;
+}
+.temperature-reading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.thermometer {
+  width: 24px;
+  height: 48px;
+  fill: none;
+  stroke: #b1855f;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.thermometer circle {
+  fill: #b1855f;
+  stroke: none;
+}
+.context {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 0.6rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+.featured .card-footer {
+  padding-top: 12px;
+  border-top: 1px solid #203f3012;
+}
+.detail-cue {
+  font-size: 0.85rem;
+}
+.mini-meter {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: #e6ede7;
+}
+.mini-meter > span {
+  display: block;
+  height: 100%;
+  background: #779586;
+  border-radius: inherit;
+}
+@media (max-width: 700px) {
+  .reading-card {
+    padding: 12px;
+    gap: 6px;
+    border-radius: 12px;
+  }
+  .metric-name {
+    font-size: 0.65rem;
+  }
+  .measurement {
+    font-size: clamp(20px, 5.5vw, 28px);
+  }
+  .featured .measurement {
+    font-size: clamp(28px, 8vw, 44px);
+  }
+  .featured .unit {
+    font-size: 0.75rem;
+  }
+  .featured .card-footer {
+    padding-top: 5px;
+  }
+  .featured .quality-text {
+    display: none;
+  }
+  .temperature-reading {
+    gap: 8px;
+  }
+  .thermometer {
+    width: 15px;
+    height: 30px;
+  }
+  .context {
+    font-size: 0.6rem;
+  }
+  .context-extra {
+    display: none;
+  }
+  .humidity .gauge-display {
+    max-width: 130px;
+  }
+  .humidity .context {
+    display: none;
+  }
+  .humidity .measurement {
+    font-size: 26px;
+    inset: 47% 0 auto;
+  }
+  .card-footer {
+    font-size: 0.57rem;
+  }
+  .detail-cue {
+    display: none;
+  }
+}
+@media (max-height: 700px) and (min-width: 701px) {
+  .featured {
+    padding: 16px;
+    gap: 5px;
+  }
+  .featured .measurement {
+    font-size: 46px;
+  }
+  .gauge-display {
+    max-height: 160px;
+  }
+}
+@media (max-height: 740px) and (max-width: 700px) {
+  .reading-card {
+    padding: 8px 10px;
+    gap: 3px;
+  }
+  .featured .card-footer {
+    padding-top: 2px;
+    border-top: 0;
+  }
+  .iaq .context,
+  .temperature .context,
+  .thermometer {
+    display: none;
+  }
+  .temperature,
+  .humidity {
+    display: grid;
+    grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
+    grid-template-rows: auto 1fr;
+  }
+  .temperature .card-heading,
+  .humidity .card-heading {
+    grid-column: 1 / -1;
+  }
+  .temperature .feature-body,
+  .humidity .feature-body {
+    grid-column: 2;
+    grid-row: 2;
+    justify-items: end;
+    align-items: end;
+  }
+  .temperature .card-footer,
+  .humidity .card-footer {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: end;
+    white-space: nowrap;
+  }
+  .humidity .gauge-display {
+    height: auto;
+    width: auto;
+    max-width: none;
+  }
+  .humidity .gauge-display .measurement {
+    position: static;
+    font-size: 24px;
+  }
+  .temperature .measurement {
+    font-size: 26px;
+  }
+  .humidity app-telemetry-gauge {
+    display: none;
+  }
+  .iaq .measurement {
+    font-size: 30px;
+  }
+  .measurement {
+    font-size: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading-card {
+    transition: none;
+  }
+}
+@media (max-width: 1050px) {
+  .reading-card:not(.featured) {
+    padding: 10px 12px;
+    gap: 4px;
+  }
+  .card-footer {
+    line-height: 1.2;
+  }
+  .detail-cue {
+    line-height: 1;
+  }
+}
+@media (max-width: 360px) {
+  .reading-card:not(.featured) {
+    padding: 8px;
+  }
+  .reading-card:not(.featured) .measurement {
+    font-size: 18px;
+    gap: 3px;
+  }
+  .reading-card:not(.featured) .unit {
+    font-size: 0.55rem;
+  }
+}
+@media (max-height: 550px) and (min-width: 701px) {
+  .featured {
+    padding: 8px 12px;
+    gap: 4px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .featured .card-heading {
+    grid-column: 1;
+  }
+  .featured .feature-body {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .featured .gauge-display {
+    height: 72px;
+    max-width: 115px;
+  }
+  .featured .measurement {
+    font-size: 28px;
+  }
+  .featured .gauge-display .measurement {
+    inset: 47% 0 auto;
+  }
+  .featured .unit {
+    font-size: 0.65rem;
+  }
+  .featured .context,
+  .featured .quality-text,
+  .thermometer {
+    display: none;
+  }
+  .featured .card-footer {
+    grid-column: 1;
+    padding: 0;
+    border: 0;
+    align-self: end;
+  }
+  .reading-card:not(.featured) {
+    padding: 8px;
+    gap: 3px;
+  }
+  .reading-card:not(.featured) .metric-name {
+    font-size: 0.6rem;
+  }
+  .reading-card:not(.featured) .measurement {
+    font-size: 20px;
+    gap: 3px;
+  }
+  .reading-card:not(.featured) .unit {
+    font-size: 0.55rem;
+  }
+  .reading-card:not(.featured) .card-footer {
+    font-size: 0.53rem;
+  }
+}

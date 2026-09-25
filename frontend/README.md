@@ -63,17 +63,26 @@ server after changing the target.
 - A malformed event closes the connection and shows a retryable error.
 - Missing readings display an em dash, never zero. An empty snapshot is valid.
 - Known tags have appropriate numeric precision or diagnostic labels. Unrecognized
-  tags remain visible under Additional readings.
+  tags remain visible with the additional measurements.
 - Telemetry quality is separate from IAQ accuracy: 0 Good, 1 Uncertain, 2 Bad.
   Sensor status 0 is Healthy; other codes remain visible without an invented label.
 - Gas resistance in ohms is displayed in kiloohms. CO2 and breath VOC equivalents
   remain labeled as estimates. No air-quality thresholds or alarms are inferred.
-- Every tag shows its observation time in Asia/Taipei and its age. Stream status
-  and last heartbeat age are separate. No stale timeout is assumed until the
-  device reporting cadence is confirmed.
+- Every tag shows its observation age. Select any reading or diagnostic to see
+  its full observed/ingested timestamps in Asia/Taipei, quality, and tag key.
+  Stream status and heartbeat age remain separate. No stale timeout is assumed
+  until the device reporting cadence is confirmed.
 
-The responsive layout uses three measurement columns on desktop, two on tablet,
-and one on phone. Diagnostics switch to compact rows on small screens.
+The dashboard fits the viewport with all 14 current tags visible, using larger
+IAQ, temperature, and humidity tiles plus compact measurements and diagnostics.
+SVG gauges show IAQ on a 0–500 scale and humidity on a 0–100 scale. Gas percentage
+has a small 0–100 meter. Gauge arcs are clamped to their visual range; the numeric
+reading is preserved. Missing data never fills a gauge. These are current-value
+indicators, not historical charts or health classifications.
+
+Small screens use a denser grid; short phones simplify the humidity tile to its
+numeric reading. Details open in a native dialog that supports Escape and restores
+keyboard focus. No chart library, historical requests, or simulated data is added.
 
 ## Checks
 
@@ -85,7 +94,9 @@ npm run format:check
 
 Tests cover independent tag updates, snapshot replacement, disconnect and recovery,
 empty/malformed data, metadata retry, connection cleanup, quality/status mappings,
-unit conversion, Taipei timestamps, and missing-versus-zero rendering.
+unit conversion, Taipei timestamps, missing-versus-zero rendering, and gauge
+scaling. Browser checks also cover viewport fit, reading details, keyboard focus,
+and network recovery.
 
 Production files are written to `dist/room-monitoring/browser` and copied into
 the Nginx image by the Dockerfile. The Angular development proxy is not included

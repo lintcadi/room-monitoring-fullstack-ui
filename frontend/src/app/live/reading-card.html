@@ -1,0 +1,90 @@
+<button
+  class="reading-card"
+  type="button"
+  (click)="selected.emit(tag())"
+  [class.featured]="featured()"
+  [class.iaq]="tag().tag_key === 'iaq'"
+  [class.temperature]="tag().tag_key === 'temperature_c'"
+  [class.humidity]="tag().tag_key === 'humidity_percent'"
+  [class.bad-reading]="tag().reading?.quality === 2"
+  [attr.aria-label]="
+    tag().name +
+    ': ' +
+    displayValue(tag()) +
+    ' ' +
+    displayUnit(tag()) +
+    '. Quality: ' +
+    qualityLabel(tag().reading?.quality) +
+    '. View details.'
+  "
+>
+  <span class="card-heading">
+    <span class="metric-name">{{ label() }}</span>
+    <span
+      class="quality"
+      [attr.data-tone]="qualityTone(tag().reading?.quality)"
+      [title]="'Telemetry quality: ' + qualityLabel(tag().reading?.quality)"
+    >
+      <span class="dot" aria-hidden="true"></span
+      ><span class="quality-text">{{ qualityLabel(tag().reading?.quality) }}</span>
+    </span>
+  </span>
+  @if (featured()) {
+    <span class="feature-body">
+      @if (tag().tag_key === 'iaq' || tag().tag_key === 'humidity_percent') {
+        <span class="gauge-display">
+          <app-telemetry-gauge
+            [value]="tag().reading?.value"
+            [max]="tag().tag_key === 'iaq' ? 500 : 100"
+            [label]="tag().name"
+          />
+          <span class="measurement"
+            ><span>{{ displayValue(tag()) }}</span
+            ><span class="unit">{{ tag().reading ? displayUnit(tag()) : '' }}</span></span
+          >
+        </span>
+      } @else {
+        <span class="temperature-reading">
+          <svg class="thermometer" viewBox="0 0 24 48" aria-hidden="true">
+            <path d="M8 29V8a4 4 0 0 1 8 0v21a9 9 0 1 1-8 0Z" />
+            <path d="M12 14v22" />
+            <circle cx="12" cy="37" r="3" />
+          </svg>
+          <span class="measurement"
+            ><span>{{ displayValue(tag()) }}</span
+            ><span class="unit">{{ tag().reading ? displayUnit(tag()) : '' }}</span></span
+          >
+        </span>
+      }
+    </span>
+    <span class="context">
+      @switch (tag().tag_key) {
+        @case ('iaq') {
+          Lower is cleaner <span class="context-extra">· 0–500 index</span>
+        }
+        @case ('humidity_percent') {
+          Relative humidity
+        }
+        @default {
+          Indoor temperature
+        }
+      }
+    </span>
+  } @else {
+    <span class="measurement"
+      ><span>{{ displayValue(tag()) }}</span
+      ><span class="unit">{{ tag().reading ? displayUnit(tag()) : '' }}</span></span
+    >
+    @if (tag().tag_key === 'gas_percentage') {
+      <span class="mini-meter" aria-hidden="true"
+        ><span [style.width.%]="percentage()"></span
+      ></span>
+    }
+  }
+  <span class="card-footer">
+    <span [title]="observedTime(tag().reading?.observed_at) + ' · Asia/Taipei'">{{
+      readingAge(tag().reading?.observed_at, now())
+    }}</span>
+    <span class="detail-cue" aria-hidden="true">↗</span>
+  </span>
+</button>

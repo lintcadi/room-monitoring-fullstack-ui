@@ -48,9 +48,9 @@ describe('LiveDashboard', () => {
     ) as NodeListOf<HTMLElement>;
     expect(cards).toHaveLength(3);
     expect(cards[0].querySelector('.measurement')?.textContent).toContain('0.0');
-    expect(cards[0].querySelector('.badge')?.textContent).toContain('Bad');
+    expect(cards[0].querySelector('.quality')?.textContent).toContain('Bad');
     expect(cards[1].querySelector('.measurement')?.textContent).toContain('—');
-    expect(cards[1].querySelector('.badge')?.textContent).toContain('No reading');
+    expect(cards[1].querySelector('.quality')?.textContent).toContain('No reading');
     expect(cards[2].textContent).toContain('Custom tag');
     http.verify();
     fixture.destroy();

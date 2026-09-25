@@ -6,11 +6,11 @@ import {
   computed,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { TelemetryService } from '../telemetry/telemetry.service';
+import { TagView } from '../telemetry/telemetry.models';
 import {
-  AIR_QUALITY,
-  CONDITIONS,
   DIAGNOSTICS,
   displayValue,
   observedTime,
@@ -19,10 +19,13 @@ import {
   readingAge,
 } from '../telemetry/telemetry.presentation';
 import { ReadingCard } from './reading-card';
+import { ReadingDetails } from './reading-details';
+
+const PRIMARY_KEYS = ['iaq', 'temperature_c', 'humidity_percent'];
 
 @Component({
   selector: 'app-live-dashboard',
-  imports: [ReadingCard],
+  imports: [ReadingCard, ReadingDetails],
   templateUrl: './live-dashboard.html',
   styleUrl: './live-dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,46 +34,36 @@ export class LiveDashboard implements OnInit, OnDestroy {
   protected readonly telemetry = inject(TelemetryService);
   protected readonly now = signal(Date.now());
   private clock?: ReturnType<typeof setInterval>;
-  protected readonly accuracy = computed(() =>
-    this.telemetry.tagViews().find((tag) => tag.tag_key === 'iaq_accuracy'),
+  protected readonly details = viewChild.required<ReadingDetails>('details');
+  protected readonly selectedId = signal<number | null>(null);
+  protected readonly selectedTag = computed(() =>
+    this.telemetry.tagViews().find((tag) => tag.id === this.selectedId()),
   );
-  protected readonly heartbeat = computed(() =>
-    this.telemetry.tagViews().find((tag) => tag.tag_key === 'heartbeat'),
+  protected readonly primary = computed(() =>
+    this.telemetry
+      .tagViews()
+      .filter((tag) => PRIMARY_KEYS.includes(tag.tag_key))
+      .sort((a, b) => PRIMARY_KEYS.indexOf(a.tag_key) - PRIMARY_KEYS.indexOf(b.tag_key)),
   );
-  protected readonly receivedCount = computed(
-    () => this.telemetry.tagViews().filter((tag) => tag.reading).length,
+  protected readonly secondary = computed(() =>
+    this.telemetry
+      .tagViews()
+      .filter((tag) => !PRIMARY_KEYS.includes(tag.tag_key) && !DIAGNOSTICS.includes(tag.tag_key)),
   );
   protected readonly diagnostics = computed(() =>
     this.telemetry.tagViews().filter((tag) => DIAGNOSTICS.includes(tag.tag_key)),
   );
-  protected readonly sections = computed(() => {
-    const tags = this.telemetry.tagViews();
-    return [
-      {
-        id: 'conditions',
-        number: '01',
-        title: 'Room conditions',
-        description: 'The room, right now.',
-        tags: tags.filter((tag) => CONDITIONS.includes(tag.tag_key)),
-      },
-      {
-        id: 'air-quality',
-        number: '02',
-        title: 'Air quality',
-        description: 'Estimates from the BME680 sensor.',
-        tags: tags.filter((tag) => AIR_QUALITY.includes(tag.tag_key)),
-      },
-      {
-        id: 'additional',
-        number: '03',
-        title: 'Additional readings',
-        description: 'A closer look at the sensor measurements.',
-        tags: tags.filter(
-          (tag) => ![...CONDITIONS, ...AIR_QUALITY, ...DIAGNOSTICS].includes(tag.tag_key),
-        ),
-      },
-    ].filter((section) => section.tags.length);
-  });
+  protected readonly receivedCount = computed(
+    () => this.telemetry.tagViews().filter((tag) => tag.reading).length,
+  );
+  protected readonly clockLabel = computed(() =>
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Taipei',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(this.now()),
+  );
   protected readonly connectionLabel = computed(
     () =>
       ({
@@ -81,11 +74,36 @@ export class LiveDashboard implements OnInit, OnDestroy {
         invalid: 'Unexpected data',
       })[this.telemetry.connection()],
   );
+  protected readonly notice = computed(() => {
+    if (this.telemetry.metadataError()) return 'Couldn’t load tags. Retry to show your readings.';
+    if (this.telemetry.connection() !== 'live')
+      return this.telemetry.hasSnapshot()
+        ? 'Live updates paused. Showing last received readings.'
+        : 'Waiting for the first live snapshot…';
+    if (this.telemetry.hasSnapshot() && !this.receivedCount())
+      return 'Tags are ready. Waiting for their first readings.';
+    return '';
+  });
+  protected readonly diagnosticLabel = (key: string, fallback: string): string =>
+    (
+      ({
+        iaq_accuracy: 'IAQ accuracy',
+        stabilization_complete: 'Stabilization',
+        run_in_complete: 'Run-in',
+        sensor_status: 'Sensor status',
+        heartbeat: 'Heartbeat',
+      }) as Record<string, string>
+    )[key] ?? fallback;
   protected readonly displayValue = displayValue;
   protected readonly qualityLabel = qualityLabel;
   protected readonly qualityTone = qualityTone;
   protected readonly observedTime = observedTime;
   protected readonly readingAge = readingAge;
+
+  protected openDetails(tag: TagView): void {
+    this.selectedId.set(tag.id);
+    this.details().open();
+  }
 
   ngOnInit(): void {
     this.telemetry.start();
