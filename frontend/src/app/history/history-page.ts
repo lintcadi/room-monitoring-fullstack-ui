@@ -8,7 +8,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { DashboardHeader } from '../shared/dashboard-header';
+import { DashboardTabs } from '../shared/dashboard-tabs';
 import { TelemetryReading } from '../telemetry/telemetry.models';
 import { displayValue, displayUnit, observedTime } from '../telemetry/telemetry.presentation';
 import { HistoryService } from './history.service';
@@ -19,7 +19,7 @@ import { HistoryRange } from './history-range';
 
 @Component({
   selector: 'app-history-page',
-  imports: [DashboardHeader, HistoryChart, HistoryRange, HistoryTable, DecimalPipe],
+  imports: [DashboardTabs, HistoryChart, HistoryRange, HistoryTable, DecimalPipe],
   providers: [HistoryService],
   templateUrl: './history-page.html',
   styleUrl: './history-page.css',

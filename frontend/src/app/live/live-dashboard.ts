@@ -18,7 +18,7 @@ import {
   qualityTone,
   readingAge,
 } from '../telemetry/telemetry.presentation';
-import { DashboardHeader } from '../shared/dashboard-header';
+import { DashboardTabs } from '../shared/dashboard-tabs';
 import { ReadingCard } from './reading-card';
 import { ReadingDetails } from './reading-details';
 
@@ -26,7 +26,7 @@ const PRIMARY_KEYS = ['iaq', 'temperature_c', 'humidity_percent'];
 
 @Component({
   selector: 'app-live-dashboard',
-  imports: [ReadingCard, ReadingDetails, DashboardHeader],
+  imports: [ReadingCard, ReadingDetails, DashboardTabs],
   templateUrl: './live-dashboard.html',
   styleUrl: './live-dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,16 +64,6 @@ export class LiveDashboard implements OnInit, OnDestroy {
       minute: '2-digit',
       hour12: false,
     }).format(this.now()),
-  );
-  protected readonly connectionLabel = computed(
-    () =>
-      ({
-        connecting: 'Connecting',
-        live: 'Stream connected',
-        reconnecting: 'Reconnecting',
-        unavailable: 'Data unavailable',
-        invalid: 'Unexpected data',
-      })[this.telemetry.connection()],
   );
   protected readonly notice = computed(() => {
     if (this.telemetry.metadataError()) return 'Couldn’t load tags. Retry to show your readings.';

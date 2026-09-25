@@ -10,14 +10,6 @@
   grid-template-rows: 38px minmax(0, 1fr) auto;
   gap: clamp(12px, 2.5vh, 28px);
 }
-.header-context {
-  color: var(--muted);
-  font-size: 0.65rem;
-}
-.header-context > span {
-  margin: 0 8px;
-  color: #b6bfb7;
-}
 main {
   min-height: 0;
   display: flex;
@@ -286,12 +278,6 @@ footer {
   }
   main {
     gap: 10px;
-  }
-  .header-context {
-    font-size: 0.55rem;
-  }
-  .header-context > span {
-    margin: 0 3px;
   }
   .page-heading h1 {
     font-size: 26px;

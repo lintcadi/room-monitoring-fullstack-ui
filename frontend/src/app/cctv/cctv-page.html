@@ -1,0 +1,66 @@
+<div class="cctv-shell">
+  <app-dashboard-tabs />
+  <main id="main-content">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">A VIEW INTO YOUR SPACE</p>
+        <h1>CCTV<span>.</span></h1>
+      </div>
+      <span class="demo-badge">Demo preview</span>
+    </div>
+    <div class="camera-layout">
+      <section class="camera-panel" aria-label="Camera feed and controls">
+        <div class="feed" aria-labelledby="feed-title">
+          <div class="feed-top">
+            <span id="feed-title">ROOM CAMERA <small>01</small></span
+            ><span class="offline"><i></i>Offline</span>
+          </div>
+          <div class="disconnected">
+            <svg
+              viewBox="0 0 48 48"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <path d="M8 13h22a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V16a3 3 0 0 1 3-3Z" />
+              <path d="m33 20 10-6v20l-10-6M4 4l40 40" />
+            </svg>
+            <h2>Disconnected</h2>
+            <p>Your camera feed will appear here.</p>
+          </div>
+          <div class="feed-bottom">
+            <span>No video signal</span><span>FPS — <i>/</i> Resolution —</span>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="control-row">
+            <div class="camera-actions" role="group" aria-label="Camera controls">
+              <button class="connect" type="button" (click)="connect()">
+                Connect<span class="desktop-label"> camera</span>
+              </button>
+              <button type="button" disabled title="Requires a connected camera">Snapshot</button>
+              <button type="button" disabled title="Requires a connected camera">Record</button>
+            </div>
+            <button
+              class="recognition-toggle"
+              type="button"
+              role="switch"
+              [attr.aria-checked]="recognition()"
+              aria-label="Demo recognition"
+              (click)="toggleRecognition()"
+            >
+              <span>Demo recognition</span><i [class.enabled]="recognition()"><b></b></i>
+            </button>
+          </div>
+          <p class="control-feedback" role="status">{{ feedback() }}</p>
+        </div>
+      </section>
+      <app-cctv-recognition [recognition]="recognition()" />
+    </div>
+  </main>
+  <footer>
+    <span>Demo only · all recognition data is fictional.</span
+    ><span class="footer-detail">Camera integration comes next.</span>
+  </footer>
+</div>

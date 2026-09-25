@@ -1,0 +1,238 @@
+:host {
+  display: contents;
+}
+.panel-heading,
+.person-label,
+.activity-heading,
+.recognition-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sample-badge {
+  font-size: 0.65rem;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: #e9eee5;
+  color: #51634d;
+  white-space: nowrap;
+}
+.recognition-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(16px, 2vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  gap: clamp(12px, 2.5vh, 28px);
+}
+h2 {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+}
+.panel-heading p {
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin: 7px 0 0;
+}
+.sample-badge {
+  font-size: 0.55rem;
+  background: #f2f3ef;
+  color: var(--muted);
+}
+.recognition-summary {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.recognition-summary strong {
+  font-size: 2rem;
+  font-weight: 450;
+  letter-spacing: -0.04em;
+}
+.recognition-summary small {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.recognition-summary > span {
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+.people {
+  display: grid;
+  gap: clamp(14px, 2.5vh, 28px);
+}
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  --person-color: #387958;
+}
+.person[data-person='girlfriend'] {
+  --person-color: #898467;
+}
+.person[data-person='unknown'] {
+  --person-color: #b68845;
+}
+.avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--person-color);
+  background: #f1f3ed;
+  font-size: 0.7rem;
+}
+.person-details {
+  flex: 1;
+  min-width: 0;
+}
+.person-label {
+  font-size: 0.75rem;
+  margin-bottom: 9px;
+}
+.person-label strong {
+  font-weight: 500;
+}
+.person-label span {
+  font-variant-numeric: tabular-nums;
+}
+.person-label small {
+  font-size: 0.55rem;
+  color: var(--muted);
+  margin-left: 3px;
+}
+.meter {
+  height: 4px;
+  border-radius: 3px;
+  background: #eff1eb;
+  overflow: hidden;
+}
+.meter i {
+  display: block;
+  height: 100%;
+  background: var(--person-color);
+  border-radius: inherit;
+}
+.activity {
+  margin-top: auto;
+}
+.activity-heading {
+  margin-bottom: 10px;
+}
+h3 {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+.activity-heading span {
+  color: var(--muted);
+  font-size: 0.55rem;
+}
+.activity-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.65rem;
+}
+.activity-row time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.activity-row strong {
+  font-weight: 500;
+}
+.activity-row > span {
+  font-size: 0.55rem;
+  color: var(--muted);
+}
+.recognition-note {
+  color: var(--muted);
+  font-size: 0.55rem;
+  line-height: 1.4;
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .recognition-panel {
+    padding: 12px;
+    gap: 10px;
+  }
+  .panel-heading p,
+  .recognition-summary,
+  .recognition-note {
+    display: none;
+  }
+  .panel-heading h2 {
+    font-size: 0.85rem;
+  }
+  .people {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .person {
+    gap: 0;
+  }
+  .avatar,
+  .person-label small {
+    display: none;
+  }
+  .person-label {
+    font-size: 0.65rem;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .activity-heading {
+    margin-bottom: 3px;
+  }
+  .activity-row {
+    min-height: 26px;
+    font-size: 0.6rem;
+  }
+}
+@media (max-height: 680px) {
+  .recognition-panel {
+    gap: 10px;
+  }
+  .people {
+    gap: 10px;
+  }
+  .recognition-summary {
+    padding-bottom: 8px;
+  }
+}
+@media (max-height: 500px) and (min-width: 701px) {
+  .recognition-summary,
+  .panel-heading p,
+  .recognition-note {
+    display: none;
+  }
+  .recognition-panel {
+    padding: 12px;
+  }
+  .avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+  }
+  .people {
+    gap: 9px;
+  }
+  .person-label {
+    margin-bottom: 4px;
+  }
+  .activity-row {
+    min-height: 25px;
+  }
+}

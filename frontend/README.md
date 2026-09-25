@@ -1,7 +1,7 @@
 # Room monitoring frontend
 
 Angular 22 with standalone components, strict TypeScript, signals, and native
-EventSource. Includes a responsive live dashboard and a history page.
+EventSource. Includes a responsive live dashboard, a history page, and a CCTV demo.
 
 ## Run with Compose
 
@@ -85,7 +85,7 @@ keyboard focus. The live page makes no historical requests.
 
 ## History
 
-Open **History** in the header or go directly to `/history`. Select any tag and
+Select the **History** tab or go directly to `/history`. Select any tag and
 choose the last 1, 6, or 24 hours, or enter a custom range. Custom date inputs and
 all displayed timestamps use Asia/Taipei, regardless of the browser's timezone.
 The start is inclusive and the end is exclusive.
@@ -112,6 +112,14 @@ The start is inclusive and the end is exclusive.
 
 Both pages use viewport-fitting layouts, with a denser layout on small screens.
 Charts use native SVG; no chart library or simulated readings are included.
+
+## CCTV demo
+
+The **CCTV** tab (`/cctv`) is a UI demo. Its feed stays **Disconnected**; Connect
+shows a demo notice, and Snapshot/Record are disabled. The recognition switch only
+changes local preview state. Me, Girlfriend, Unknown, observation counts, times,
+and match scores are fixed fictional examples. This page makes no API requests,
+opens no camera stream, and performs no recognition.
 
 ## Checks
 

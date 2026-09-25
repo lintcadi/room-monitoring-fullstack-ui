@@ -10,23 +10,6 @@
   grid-template-rows: 38px minmax(0, 1fr) auto;
   gap: clamp(12px, 2.5vh, 28px);
 }
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  font-size: 0.65rem;
-}
-.device-label {
-  color: var(--muted);
-  letter-spacing: 0.09em;
-}
-.connection {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 10px;
-  border-radius: 20px;
-}
 .workspace {
   min-height: 0;
   display: flex;
@@ -228,17 +211,6 @@ h1 > span {
     padding: 14px;
     grid-template-rows: 28px minmax(0, 1fr) auto;
     gap: 12px;
-  }
-  .topbar-right {
-    gap: 0;
-  }
-  .device-label {
-    display: none;
-  }
-  .connection {
-    font-size: 0.57rem;
-    padding: 5px 7px;
-    gap: 5px;
   }
   .workspace {
     gap: 12px;

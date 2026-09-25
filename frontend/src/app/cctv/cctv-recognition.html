@@ -1,0 +1,41 @@
+<section class="recognition-panel" aria-labelledby="recognition-title">
+  <div class="panel-heading">
+    <div>
+      <h2 id="recognition-title">Recognition</h2>
+      <p>Who passed through the room</p>
+    </div>
+    <span class="sample-badge">Sample data</span>
+  </div>
+  <div class="recognition-summary">
+    <strong>23 <small>sample observations</small></strong
+    ><span>{{ recognition() ? 'Preview on' : 'Preview paused' }}</span>
+  </div>
+  <div class="people" aria-label="Sample observations by identity">
+    @for (person of people; track person.name) {
+      <div class="person" [attr.data-person]="person.tone">
+        <span class="avatar" aria-hidden="true">{{ person.initials }}</span>
+        <div class="person-details">
+          <div class="person-label">
+            <strong>{{ person.name }}</strong
+            ><span>{{ person.count }} <small>observations</small></span>
+          </div>
+          <div class="meter" aria-hidden="true"><i [style.width.%]="person.share"></i></div>
+        </div>
+      </div>
+    }
+  </div>
+  <div class="activity">
+    <div class="activity-heading">
+      <h3>Sample activity</h3>
+      <span>Asia/Taipei</span>
+    </div>
+    @for (person of people; track person.name) {
+      <div class="activity-row">
+        <time>{{ person.time }}</time
+        ><strong>{{ person.name }}</strong
+        ><span>{{ person.detail }}</span>
+      </div>
+    }
+  </div>
+  <p class="recognition-note">Illustrative identities and scores. No recognition is running.</p>
+</section>
