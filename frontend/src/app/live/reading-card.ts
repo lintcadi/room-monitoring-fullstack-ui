@@ -1,3 +1,5 @@
+import { MatCardModule } from '@angular/material/card';
+import { MatRippleModule } from '@angular/material/core';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TagView } from '../telemetry/telemetry.models';
 import {
@@ -12,7 +14,7 @@ import { TelemetryGauge } from './telemetry-gauge';
 
 @Component({
   selector: 'app-reading-card',
-  imports: [TelemetryGauge],
+  imports: [TelemetryGauge, MatCardModule, MatRippleModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reading-card.html',
   styleUrl: './reading-card.css',

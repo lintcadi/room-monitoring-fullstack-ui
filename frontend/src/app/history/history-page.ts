@@ -1,14 +1,19 @@
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  OnDestroy,
   computed,
   inject,
   signal,
-  viewChild,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { DashboardTabs } from '../shared/dashboard-tabs';
 import { TelemetryReading } from '../telemetry/telemetry.models';
 import { displayValue, displayUnit, observedTime } from '../telemetry/telemetry.presentation';
 import { HistoryService } from './history.service';
@@ -19,15 +24,25 @@ import { HistoryRange } from './history-range';
 
 @Component({
   selector: 'app-history-page',
-  imports: [DashboardTabs, HistoryChart, HistoryRange, HistoryTable, DecimalPipe],
+  imports: [
+    MatFormFieldModule,
+    MatSelectModule,
+    MatButtonToggleModule,
+    MatButtonModule,
+    MatCardModule,
+    HistoryChart,
+    HistoryTable,
+    DecimalPipe,
+  ],
   providers: [HistoryService],
   templateUrl: './history-page.html',
   styleUrl: './history-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HistoryPage implements OnInit {
+export class HistoryPage implements OnInit, OnDestroy {
   protected readonly history = inject(HistoryService);
-  protected readonly rangeDialog = viewChild.required<HistoryRange>('rangeDialog');
+  private readonly dialog = inject(MatDialog);
+  private rangeDialog?: MatDialogRef<HistoryRange>;
   protected readonly preset = signal<number | 'custom'>(1);
   protected readonly view = signal<'chart' | 'table'>('chart');
   protected readonly maxReadings = MAX_READINGS;
@@ -77,10 +92,10 @@ export class HistoryPage implements OnInit {
     this.history.loadTags();
   }
 
-  protected changeTag(event: Event): void {
+  protected changeTag(tagId: number): void {
     const query = this.history.query();
     if (query) {
-      this.history.load({ ...query, tagId: Number((event.target as HTMLSelectElement).value) });
+      this.history.load({ ...query, tagId });
     }
   }
 
@@ -89,6 +104,25 @@ export class HistoryPage implements OnInit {
     if (!query) return;
     this.preset.set(hours);
     this.history.load({ tagId: query.tagId, ...recentRange(hours) });
+  }
+
+  protected openRange(): void {
+    const query = this.history.query();
+    if (!query) return;
+    this.rangeDialog = this.dialog.open(HistoryRange, {
+      data: query,
+      width: '420px',
+      maxWidth: 'calc(100vw - 24px)',
+    });
+    this.rangeDialog
+      .afterClosed()
+      .subscribe((range: { start: string; end: string } | undefined) => {
+        if (range) this.custom(range);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.rangeDialog?.close();
   }
 
   protected custom(range: { start: string; end: string }): void {

@@ -36,26 +36,14 @@ td small {
   font-size: 0.6rem;
   color: var(--muted);
 }
-.table-pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 0.6rem;
+mat-paginator {
   flex-shrink: 0;
 }
-.table-pagination > div {
-  display: flex;
-  gap: 5px;
+tr {
+  height: 36px;
 }
-button {
-  min-height: 28px;
-  padding: 3px 10px;
-}
-button:disabled {
-  opacity: 0.45;
-  cursor: default;
+tr:first-child {
+  height: 28px;
 }
 @media (max-width: 700px) {
   table {
@@ -70,8 +58,5 @@ button:disabled {
   .badge {
     font-size: 0.53rem;
     padding: 3px 4px;
-  }
-  .table-pagination {
-    font-size: 0.55rem;
   }
 }

@@ -1,14 +1,6 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  Injector,
-  afterNextRender,
-  inject,
-  input,
-  output,
-  viewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Signal, inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
 import { TagView } from '../telemetry/telemetry.models';
 import {
   displayUnit,
@@ -20,23 +12,16 @@ import {
 
 @Component({
   selector: 'app-reading-details',
+  imports: [MatDialogModule, MatButtonModule],
   templateUrl: './reading-details.html',
   styleUrl: './reading-details.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReadingDetails {
-  private readonly injector = inject(Injector);
-  readonly tag = input<TagView>();
-  readonly closed = output<void>();
-  protected readonly details = viewChild.required<ElementRef<HTMLDialogElement>>('details');
+  protected readonly tag = inject<{ tag: Signal<TagView | undefined> }>(MAT_DIALOG_DATA).tag;
   protected readonly displayValue = displayValue;
   protected readonly displayUnit = displayUnit;
   protected readonly qualityLabel = qualityLabel;
   protected readonly qualityTone = qualityTone;
   protected readonly observedTime = observedTime;
-
-  open(): void {
-    // Render the selected reading before the native dialog assigns focus.
-    afterNextRender(() => this.details().nativeElement.showModal(), { injector: this.injector });
-  }
 }

@@ -1,2 +1,5 @@
 <a class="skip-link" href="#main-content">Skip to content</a>
-<router-outlet />
+<div class="app-shell">
+  <app-dashboard-tabs [tabPanel]="routePanel" />
+  <mat-tab-nav-panel #routePanel><router-outlet /></mat-tab-nav-panel>
+</div>

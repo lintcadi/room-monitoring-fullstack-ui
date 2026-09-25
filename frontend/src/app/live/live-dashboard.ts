@@ -1,3 +1,6 @@
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatRippleModule } from '@angular/material/core';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,7 +9,6 @@ import {
   computed,
   inject,
   signal,
-  viewChild,
 } from '@angular/core';
 import { TelemetryService } from '../telemetry/telemetry.service';
 import { TagView } from '../telemetry/telemetry.models';
@@ -18,7 +20,6 @@ import {
   qualityTone,
   readingAge,
 } from '../telemetry/telemetry.presentation';
-import { DashboardTabs } from '../shared/dashboard-tabs';
 import { ReadingCard } from './reading-card';
 import { ReadingDetails } from './reading-details';
 
@@ -26,7 +27,7 @@ const PRIMARY_KEYS = ['iaq', 'temperature_c', 'humidity_percent'];
 
 @Component({
   selector: 'app-live-dashboard',
-  imports: [ReadingCard, ReadingDetails, DashboardTabs],
+  imports: [MatButtonModule, MatRippleModule, ReadingCard],
   templateUrl: './live-dashboard.html',
   styleUrl: './live-dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,7 +36,8 @@ export class LiveDashboard implements OnInit, OnDestroy {
   protected readonly telemetry = inject(TelemetryService);
   protected readonly now = signal(Date.now());
   private clock?: ReturnType<typeof setInterval>;
-  protected readonly details = viewChild.required<ReadingDetails>('details');
+  private readonly dialog = inject(MatDialog);
+  private details?: MatDialogRef<ReadingDetails>;
   protected readonly selectedId = signal<number | null>(null);
   protected readonly selectedTag = computed(() =>
     this.telemetry.tagViews().find((tag) => tag.id === this.selectedId()),
@@ -93,7 +95,13 @@ export class LiveDashboard implements OnInit, OnDestroy {
 
   protected openDetails(tag: TagView): void {
     this.selectedId.set(tag.id);
-    this.details().open();
+    this.details = this.dialog.open(ReadingDetails, {
+      data: { tag: this.selectedTag },
+      width: '440px',
+      maxWidth: 'calc(100vw - 24px)',
+      ariaLabelledBy: 'detail-title',
+    });
+    this.details.afterClosed().subscribe(() => this.selectedId.set(null));
   }
 
   ngOnInit(): void {
@@ -102,6 +110,7 @@ export class LiveDashboard implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.details?.close();
     clearInterval(this.clock);
     this.telemetry.stop();
   }

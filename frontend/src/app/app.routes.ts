@@ -1,8 +1,11 @@
 import { Routes } from '@angular/router';
-import { LiveDashboard } from './live/live-dashboard';
 
 export const routes: Routes = [
-  { path: '', component: LiveDashboard, title: 'Live overview · Room monitor' },
+  {
+    path: '',
+    loadComponent: () => import('./live/live-dashboard').then((m) => m.LiveDashboard),
+    title: 'Live overview · Room monitor',
+  },
   {
     path: 'history',
     loadComponent: () => import('./history/history-page').then((m) => m.HistoryPage),

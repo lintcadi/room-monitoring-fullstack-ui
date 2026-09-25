@@ -1,34 +1,12 @@
-.reading-details {
-  width: min(440px, calc(100vw - 32px));
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 24px;
-  color: var(--text);
-  background: var(--surface);
-  box-shadow: 0 24px 100px #1e352940;
-}
-.reading-details::backdrop {
-  background: #24362d55;
-  backdrop-filter: blur(5px);
-}
 .dialog-heading {
+  padding: 12px 24px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
-.close-button {
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
-  padding: 0;
-  border: 0;
-  background: #eff2ec;
-  border-radius: 50%;
-  font-size: 1.4rem;
-}
 .reading-details h2 {
-  margin: 12px 0 0;
+  margin: 0;
   font-size: 1.2rem;
   font-weight: 500;
 }
@@ -65,7 +43,7 @@ dd {
   overflow-wrap: anywhere;
 }
 .detail-note {
-  margin: 12px 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.5;

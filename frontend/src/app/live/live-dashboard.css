@@ -1,13 +1,14 @@
 :host {
   display: block;
+  height: 100%;
 }
 .dashboard-shell {
-  height: 100dvh;
+  height: 100%;
   max-width: 1720px;
   margin: auto;
   padding: clamp(16px, 2.5vh, 32px) clamp(16px, 3vw, 48px);
   display: grid;
-  grid-template-rows: 38px minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: clamp(12px, 2.5vh, 28px);
 }
 .workspace {
@@ -209,7 +210,7 @@ h1 > span {
 @media (max-width: 700px) {
   .dashboard-shell {
     padding: 14px;
-    grid-template-rows: 28px minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
     gap: 12px;
   }
   .workspace {
@@ -291,7 +292,7 @@ h1 > span {
   .dashboard-shell {
     padding: 8px 12px;
     gap: 7px;
-    grid-template-rows: 26px minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
   }
   .workspace {
     gap: 7px;
@@ -327,7 +328,7 @@ h1 > span {
   .dashboard-shell {
     padding-block: 10px;
     gap: 8px;
-    grid-template-rows: 26px minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
   }
   .workspace {
     gap: 8px;
@@ -355,4 +356,16 @@ h1 > span {
   .diagnostic-row {
     gap: 4px;
   }
+}
+
+.dashboard-shell {
+  padding-top: 0;
+}
+
+.diagnostic-row {
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }

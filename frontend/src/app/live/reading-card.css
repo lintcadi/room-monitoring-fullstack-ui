@@ -375,3 +375,16 @@
     font-size: 0.53rem;
   }
 }
+
+.reading-surface {
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+.reading-card {
+  font: inherit;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  color: var(--text);
+}

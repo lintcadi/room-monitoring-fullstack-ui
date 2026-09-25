@@ -1,4 +1,4 @@
-<section class="recognition-panel" aria-labelledby="recognition-title">
+<mat-card appearance="outlined" class="recognition-panel" aria-labelledby="recognition-title">
   <div class="panel-heading">
     <div>
       <h2 id="recognition-title">Recognition</h2>
@@ -19,7 +19,11 @@
             <strong>{{ person.name }}</strong
             ><span>{{ person.count }} <small>observations</small></span>
           </div>
-          <div class="meter" aria-hidden="true"><i [style.width.%]="person.share"></i></div>
+          <mat-progress-bar
+            mode="determinate"
+            [value]="person.share"
+            [attr.aria-label]="person.name + ' share of sample observations'"
+          />
         </div>
       </div>
     }
@@ -38,4 +42,4 @@
     }
   </div>
   <p class="recognition-note">Illustrative identities and scores. No recognition is running.</p>
-</section>
+</mat-card>

@@ -1,72 +1,75 @@
-<dialog #details class="reading-details" (close)="closed.emit()" aria-labelledby="detail-title">
+<div class="reading-details">
   @if (tag(); as tag) {
     <div class="dialog-heading">
       <span class="eyebrow">READING DETAILS</span
       ><button
         class="close-button"
         type="button"
-        (click)="details.close()"
+        mat-icon-button
+        mat-dialog-close
         aria-label="Close reading details"
       >
         ×
       </button>
     </div>
-    <h2 id="detail-title">{{ tag.name }}</h2>
-    <p class="detail-value">
-      {{ displayValue(tag) }} <span>{{ tag.reading ? displayUnit(tag) : '' }}</span>
-    </p>
-    <dl>
-      <div>
-        <dt>Telemetry quality</dt>
-        <dd>
-          <span class="badge" [attr.data-tone]="qualityTone(tag.reading?.quality)">{{
-            qualityLabel(tag.reading?.quality)
-          }}</span>
-        </dd>
-      </div>
-      <div>
-        <dt>Observed</dt>
-        <dd>{{ observedTime(tag.reading?.observed_at) }}</dd>
-      </div>
-      <div>
-        <dt>Ingested</dt>
-        <dd>{{ observedTime(tag.reading?.ingested_at) }}</dd>
-      </div>
-      <div>
-        <dt>Timezone</dt>
-        <dd>Asia/Taipei · UTC+08:00</dd>
-      </div>
-      <div>
-        <dt>Tag key</dt>
-        <dd class="tag-key">{{ tag.tag_key }}</dd>
-      </div>
-    </dl>
-    @switch (tag.tag_key) {
-      @case ('iaq') {
-        <p class="detail-note">
-          Bosch IAQ index, 0–500. Lower values indicate cleaner air. Check IAQ accuracy in sensor
-          diagnostics.
-        </p>
+    <h2 mat-dialog-title id="detail-title">{{ tag.name }}</h2>
+    <mat-dialog-content>
+      <p class="detail-value">
+        {{ displayValue(tag) }} <span>{{ tag.reading ? displayUnit(tag) : '' }}</span>
+      </p>
+      <dl>
+        <div>
+          <dt>Telemetry quality</dt>
+          <dd>
+            <span class="badge" [attr.data-tone]="qualityTone(tag.reading?.quality)">{{
+              qualityLabel(tag.reading?.quality)
+            }}</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Observed</dt>
+          <dd>{{ observedTime(tag.reading?.observed_at) }}</dd>
+        </div>
+        <div>
+          <dt>Ingested</dt>
+          <dd>{{ observedTime(tag.reading?.ingested_at) }}</dd>
+        </div>
+        <div>
+          <dt>Timezone</dt>
+          <dd>Asia/Taipei · UTC+08:00</dd>
+        </div>
+        <div>
+          <dt>Tag key</dt>
+          <dd class="tag-key">{{ tag.tag_key }}</dd>
+        </div>
+      </dl>
+      @switch (tag.tag_key) {
+        @case ('iaq') {
+          <p class="detail-note">
+            Bosch IAQ index, 0–500. Lower values indicate cleaner air. Check IAQ accuracy in sensor
+            diagnostics.
+          </p>
+        }
+        @case ('co2_equivalent_ppm') {
+          <p class="detail-note">
+            An estimate derived from VOC behavior, not a direct CO₂ measurement.
+          </p>
+        }
+        @case ('breath_voc_equivalent_ppm') {
+          <p class="detail-note">A calculated breath VOC equivalent estimate.</p>
+        }
+        @case ('gas_percentage') {
+          <p class="detail-note">
+            A relative indicator based on this sensor’s history, not a gas concentration.
+          </p>
+        }
+        @case ('heartbeat') {
+          <p class="detail-note">
+            Device-reported heartbeat value. Its observation time is separate from the browser’s
+            live connection status.
+          </p>
+        }
       }
-      @case ('co2_equivalent_ppm') {
-        <p class="detail-note">
-          An estimate derived from VOC behavior, not a direct CO₂ measurement.
-        </p>
-      }
-      @case ('breath_voc_equivalent_ppm') {
-        <p class="detail-note">A calculated breath VOC equivalent estimate.</p>
-      }
-      @case ('gas_percentage') {
-        <p class="detail-note">
-          A relative indicator based on this sensor’s history, not a gas concentration.
-        </p>
-      }
-      @case ('heartbeat') {
-        <p class="detail-note">
-          Device-reported heartbeat value. Its observation time is separate from the browser’s live
-          connection status.
-        </p>
-      }
-    }
+    </mat-dialog-content>
   }
-</dialog>
+</div>

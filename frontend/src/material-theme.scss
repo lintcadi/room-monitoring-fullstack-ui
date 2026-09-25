@@ -1,0 +1,127 @@
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$green-palette,
+        tertiary: mat.$cyan-palette,
+      ),
+      typography: (
+        plain-family: 'Inter, Segoe UI, Arial, sans-serif',
+        brand-family: 'Inter, Segoe UI, Arial, sans-serif',
+      ),
+      density: -3,
+    )
+  );
+  @include mat.theme-overrides(
+    (
+      primary: #267653,
+      on-primary: #ffffff,
+      surface: #ffffff,
+      on-surface: #273d34,
+      on-surface-variant: #69776e,
+      outline: #bdc9bd,
+      outline-variant: #e1e6dc,
+      secondary-container: #e4eee3,
+      on-secondary-container: #273d34,
+    )
+  );
+  @include mat.tabs-overrides(
+    (
+      container-height: 38px,
+      label-text-size: 12px,
+    )
+  );
+  @include mat.button-overrides(
+    (
+      outlined-label-text-size: 12px,
+      filled-label-text-size: 12px,
+      text-label-text-size: 12px,
+    )
+  );
+  @include mat.button-toggle-overrides(
+    (
+      height: 32px,
+      label-text-size: 11px,
+    )
+  );
+  @include mat.form-field-overrides(
+    (
+      container-height: 40px,
+      container-vertical-padding: 8px,
+      container-text-size: 13px,
+    )
+  );
+  @include mat.select-overrides(
+    (
+      trigger-text-size: 13px,
+    )
+  );
+  @include mat.slide-toggle-overrides(
+    (
+      label-text-size: 11px,
+    )
+  );
+  @include mat.table-overrides(
+    (
+      row-item-container-height: 36px,
+      header-container-height: 28px,
+      row-item-label-text-size: 12px,
+      header-headline-size: 10px,
+    )
+  );
+  @include mat.paginator-overrides(
+    (
+      container-size: 40px,
+      container-text-size: 10px,
+    )
+  );
+}
+@media (max-width: 700px) {
+  html {
+    @include mat.tabs-overrides(
+      (
+        container-height: 32px,
+        label-text-size: 11px,
+      )
+    );
+    @include mat.button-overrides(
+      (
+        outlined-container-height: 28px,
+        filled-container-height: 28px,
+        text-container-height: 28px,
+        outlined-label-text-size: 10px,
+        filled-label-text-size: 10px,
+      )
+    );
+    @include mat.button-toggle-overrides(
+      (
+        height: 28px,
+        label-text-size: 10px,
+      )
+    );
+    @include mat.form-field-overrides(
+      (
+        container-height: 36px,
+        container-vertical-padding: 6px,
+        container-text-size: 12px,
+      )
+    );
+    @include mat.table-overrides(
+      (
+        row-item-label-text-size: 10px,
+        header-headline-size: 9px,
+      )
+    );
+  }
+}
+
+.person mat-progress-bar {
+  @include mat.progress-bar-overrides(
+    (
+      active-indicator-color: var(--person-color),
+      track-color: #eff1eb,
+    )
+  );
+}

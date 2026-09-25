@@ -1,50 +1,40 @@
-<table>
-  <thead>
-    <tr>
-      <th scope="col">Observed · Taipei</th>
-      <th scope="col">Value</th>
-      <th scope="col">Quality</th>
-    </tr>
-  </thead>
-  <tbody>
-    @for (row of rows(); track row.id) {
-      <tr>
-        <td>
-          <time
-            [attr.datetime]="row.observed_at"
-            [title]="'Observed: ' + row.observed_at + '; ingested: ' + row.ingested_at"
-            >{{ observedTime(row.observed_at) }}</time
-          >
-        </td>
-        <td [title]="'Raw value: ' + row.value + (tag().unit ? ' ' + tag().unit : '')">
-          {{ value(row) }} <small>{{ unit() }}</small>
-        </td>
-        <td>
-          <span class="badge" [attr.data-tone]="qualityTone(row.quality)">{{
-            qualityLabel(row.quality)
-          }}</span>
-        </td>
-      </tr>
-    }
-  </tbody>
+<table mat-table [dataSource]="rows()" aria-label="Loaded history readings">
+  <ng-container matColumnDef="observed">
+    <th mat-header-cell *matHeaderCellDef>Observed · Taipei</th>
+    <td mat-cell *matCellDef="let row">
+      <time
+        [attr.datetime]="row.observed_at"
+        [title]="'Observed: ' + row.observed_at + '; ingested: ' + row.ingested_at"
+        >{{ observedTime(row.observed_at) }}</time
+      >
+    </td>
+  </ng-container>
+  <ng-container matColumnDef="value">
+    <th mat-header-cell *matHeaderCellDef>Value</th>
+    <td
+      mat-cell
+      *matCellDef="let row"
+      [title]="'Raw value: ' + row.value + (tag().unit ? ' ' + tag().unit : '')"
+    >
+      {{ value(row) }} <small>{{ unit() }}</small>
+    </td>
+  </ng-container>
+  <ng-container matColumnDef="quality">
+    <th mat-header-cell *matHeaderCellDef>Quality</th>
+    <td mat-cell *matCellDef="let row">
+      <span class="badge" [attr.data-tone]="qualityTone(row.quality)">{{
+        qualityLabel(row.quality)
+      }}</span>
+    </td>
+  </ng-container>
+  <tr mat-header-row *matHeaderRowDef="columns"></tr>
+  <tr mat-row *matRowDef="let row; columns: columns"></tr>
 </table>
-<div class="table-pagination">
-  <span>Page {{ current() + 1 }} of {{ pages() }} · loaded readings</span>
-  <div>
-    <button
-      type="button"
-      [disabled]="current() === 0"
-      (click)="page.set(current() - 1)"
-      aria-label="Previous readings page"
-    >
-      ←</button
-    ><button
-      type="button"
-      [disabled]="current() + 1 >= pages()"
-      (click)="page.set(current() + 1)"
-      aria-label="Next readings page"
-    >
-      →
-    </button>
-  </div>
-</div>
+<mat-paginator
+  [length]="readings().length"
+  [pageSize]="pageSize()"
+  [pageIndex]="current()"
+  [hidePageSize]="true"
+  (page)="page.set($event.pageIndex)"
+  aria-label="Pages of loaded readings"
+/>

@@ -1,5 +1,4 @@
 <div class="history-shell">
-  <app-dashboard-tabs />
   <main id="main-content">
     <div class="page-heading">
       <div>
@@ -13,44 +12,53 @@
     } @else if (history.tagsError()) {
       <div class="empty-state" role="alert">
         <h2>Couldn’t load tags.</h2>
-        <button type="button" (click)="history.loadTags()">Retry tags</button>
+        <button mat-stroked-button type="button" (click)="history.loadTags()">Retry tags</button>
       </div>
     } @else if (!history.tags().length) {
       <div class="empty-state">
         <h2>No tags available</h2>
-        <button type="button" (click)="history.loadTags()">Refresh tags</button>
+        <button mat-stroked-button type="button" (click)="history.loadTags()">Refresh tags</button>
       </div>
     } @else if (history.query(); as query) {
       <div class="filters">
-        <label class="tag-picker"
-          ><span>MEASUREMENT</span
-          ><select aria-label="Measurement" [value]="query.tagId" (change)="changeTag($event)">
+        <mat-form-field class="tag-picker" appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Measurement</mat-label>
+          <mat-select [value]="query.tagId" (selectionChange)="changeTag($event.value)">
             @for (tag of history.tags(); track tag.id) {
-              <option [value]="tag.id">{{ tag.name }}{{ tag.unit ? ' · ' + tag.unit : '' }}</option>
+              <mat-option [value]="tag.id"
+                >{{ tag.name }}{{ tag.unit ? ' · ' + tag.unit : '' }}</mat-option
+              >
             }
-          </select></label
-        >
-        <div class="range-picker" role="group" aria-label="Time range">
-          @for (hours of [1, 6, 24]; track hours) {
-            <button
-              type="button"
-              [class.active]="preset() === hours"
-              [attr.aria-pressed]="preset() === hours"
-              (click)="selectPreset(hours)"
-            >
-              {{ hours }}h
-            </button>
-          }
+          </mat-select>
+        </mat-form-field>
+        <div class="range-controls">
+          <mat-button-toggle-group
+            class="range-picker"
+            [value]="preset()"
+            (change)="selectPreset($event.value)"
+            hideSingleSelectionIndicator
+            aria-label="Preset time range"
+          >
+            @for (hours of [1, 6, 24]; track hours) {
+              <mat-button-toggle [value]="hours">{{ hours }}h</mat-button-toggle>
+            }
+          </mat-button-toggle-group>
           <button
+            mat-stroked-button
             type="button"
-            [class.active]="preset() === 'custom'"
             [attr.aria-pressed]="preset() === 'custom'"
-            (click)="rangeDialog.open(query)"
+            (click)="openRange()"
           >
             Custom
           </button>
         </div>
-        <button class="refresh" type="button" (click)="refresh()" aria-label="Refresh history">
+        <button
+          mat-stroked-button
+          class="refresh"
+          type="button"
+          (click)="refresh()"
+          aria-label="Refresh history"
+        >
           <span aria-hidden="true">↻</span><span class="refresh-label">Refresh</span>
         </button>
       </div>
@@ -88,7 +96,8 @@
           </div>
         }
       </div>
-      <section
+      <mat-card
+        appearance="outlined"
         class="history-panel"
         aria-labelledby="chart-title"
         [attr.aria-busy]="history.loading()"
@@ -102,23 +111,16 @@
               completeness()
             }}</span>
           </div>
-          <div class="view-picker" role="group" aria-label="History view">
-            <button
-              type="button"
-              [class.active]="view() === 'chart'"
-              [attr.aria-pressed]="view() === 'chart'"
-              (click)="view.set('chart')"
-            >
-              Chart</button
-            ><button
-              type="button"
-              [class.active]="view() === 'table'"
-              [attr.aria-pressed]="view() === 'table'"
-              (click)="view.set('table')"
-            >
-              Readings
-            </button>
-          </div>
+          <mat-button-toggle-group
+            class="view-picker"
+            [value]="view()"
+            (change)="view.set($event.value)"
+            hideSingleSelectionIndicator
+            aria-label="History view"
+          >
+            <mat-button-toggle value="chart">Chart</mat-button-toggle>
+            <mat-button-toggle value="table">Readings</mat-button-toggle>
+          </mat-button-toggle-group>
         </div>
         @if (history.error()) {
           <div class="error-notice" role="alert">
@@ -129,7 +131,7 @@
                   ? 'the next page. Loaded readings are kept.'
                   : 'this range.'
               }}</span
-            ><button type="button" (click)="history.retry()">Retry</button>
+            ><button mat-stroked-button type="button" (click)="history.retry()">Retry</button>
           </div>
         }
         @if (!history.readings().length) {
@@ -174,12 +176,17 @@
             }
           </span>
           @if (history.nextCursor() && !history.limitReached()) {
-            <button type="button" [disabled]="history.loading()" (click)="history.loadMore()">
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="history.loading()"
+              (click)="history.loadMore()"
+            >
               {{ history.loading() ? 'Loading…' : 'Load more' }}
             </button>
           }
         </div>
-      </section>
+      </mat-card>
     }
   </main>
   <footer>
@@ -187,4 +194,3 @@
     ><span class="footer-note">CO₂ & VOC equivalents are estimates.</span>
   </footer>
 </div>
-<app-history-range #rangeDialog (selected)="custom($event)" />

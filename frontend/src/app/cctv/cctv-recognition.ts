@@ -1,7 +1,10 @@
+import { MatCardModule } from '@angular/material/card';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 @Component({
   selector: 'app-cctv-recognition',
+  imports: [MatCardModule, MatProgressBarModule],
   templateUrl: './cctv-recognition.html',
   styleUrl: './cctv-recognition.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

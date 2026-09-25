@@ -1,10 +1,12 @@
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { DashboardTabs } from '../shared/dashboard-tabs';
 import { CctvRecognition } from './cctv-recognition';
 
 @Component({
   selector: 'app-cctv-page',
-  imports: [DashboardTabs, CctvRecognition],
+  imports: [MatSlideToggleModule, MatButtonModule, MatCardModule, CctvRecognition],
   templateUrl: './cctv-page.html',
   styleUrl: './cctv-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

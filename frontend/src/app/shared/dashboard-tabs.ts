@@ -1,60 +1,47 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { MatTabsModule, MatTabNavPanel } from '@angular/material/tabs';
 
 @Component({
   selector: 'app-dashboard-tabs',
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, MatTabsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <nav aria-label="Dashboard navigation">
-      <a
-        routerLink="/"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: true }"
-        ariaCurrentWhenActive="page"
-        >Live</a
-      >
-      <a routerLink="/history" routerLinkActive="active" ariaCurrentWhenActive="page">History</a>
-      <a routerLink="/cctv" routerLinkActive="active" ariaCurrentWhenActive="page">CCTV</a>
+    <nav
+      mat-tab-nav-bar
+      [tabPanel]="tabPanel()"
+      [disablePagination]="true"
+      aria-label="Dashboard navigation"
+    >
+      @for (tab of tabs; track tab.path) {
+        <a
+          mat-tab-link
+          [routerLink]="tab.path"
+          routerLinkActive
+          #active="routerLinkActive"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [active]="active.isActive"
+          >{{ tab.label }}</a
+        >
+      }
     </nav>
   `,
   styles: `
     :host {
       display: flex;
-      height: 100%;
-      min-width: 0;
-      align-items: center;
       justify-content: center;
+      min-width: 0;
     }
     nav {
-      display: flex;
-      gap: 3px;
-      padding: 3px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #eeefea;
-    }
-    nav a {
-      padding: 6px 20px;
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.75rem;
-      border-radius: 7px;
-    }
-    nav a.active {
-      background: var(--surface);
-      color: var(--text);
-      box-shadow: 0 1px 4px #203f3010;
-    }
-    @media (max-width: 700px) {
-      nav {
-        padding: 2px;
-      }
-      nav a {
-        padding: 4px 12px;
-        font-size: 0.65rem;
-      }
+      max-width: 100%;
     }
   `,
 })
-export class DashboardTabs {}
+export class DashboardTabs {
+  readonly tabPanel = input.required<MatTabNavPanel>();
+  protected readonly tabs = [
+    { path: '/', label: 'Live' },
+    { path: '/history', label: 'History' },
+    { path: '/cctv', label: 'CCTV' },
+  ];
+}

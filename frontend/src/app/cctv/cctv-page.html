@@ -1,5 +1,4 @@
 <div class="cctv-shell">
-  <app-dashboard-tabs />
   <main id="main-content">
     <div class="page-heading">
       <div>
@@ -9,7 +8,7 @@
       <span class="demo-badge">Demo preview</span>
     </div>
     <div class="camera-layout">
-      <section class="camera-panel" aria-label="Camera feed and controls">
+      <mat-card appearance="outlined" class="camera-panel" aria-label="Camera feed and controls">
         <div class="feed" aria-labelledby="feed-title">
           <div class="feed-top">
             <span id="feed-title">ROOM CAMERA <small>01</small></span
@@ -36,26 +35,26 @@
         <div class="controls">
           <div class="control-row">
             <div class="camera-actions" role="group" aria-label="Camera controls">
-              <button class="connect" type="button" (click)="connect()">
+              <button mat-flat-button class="connect" type="button" (click)="connect()">
                 Connect<span class="desktop-label"> camera</span>
               </button>
-              <button type="button" disabled title="Requires a connected camera">Snapshot</button>
-              <button type="button" disabled title="Requires a connected camera">Record</button>
+              <button mat-stroked-button type="button" disabled title="Requires a connected camera">
+                Snapshot
+              </button>
+              <button mat-stroked-button type="button" disabled title="Requires a connected camera">
+                Record
+              </button>
             </div>
-            <button
+            <mat-slide-toggle
               class="recognition-toggle"
-              type="button"
-              role="switch"
-              [attr.aria-checked]="recognition()"
-              aria-label="Demo recognition"
-              (click)="toggleRecognition()"
+              [checked]="recognition()"
+              (change)="toggleRecognition()"
+              >Demo recognition</mat-slide-toggle
             >
-              <span>Demo recognition</span><i [class.enabled]="recognition()"><b></b></i>
-            </button>
           </div>
           <p class="control-feedback" role="status">{{ feedback() }}</p>
         </div>
-      </section>
+      </mat-card>
       <app-cctv-recognition [recognition]="recognition()" />
     </div>
   </main>

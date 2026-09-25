@@ -19,21 +19,6 @@ body {
   margin: 0;
   min-width: 320px;
 }
-button {
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 550;
-  color: var(--text);
-  background: var(--surface);
-  padding: 10px 16px;
-  border: 1px solid #bdc9bd;
-  border-radius: 8px;
-  cursor: pointer;
-  min-height: 42px;
-}
-button:hover {
-  background: #edf3eb;
-}
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 4px;

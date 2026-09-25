@@ -1,7 +1,7 @@
 # Room monitoring frontend
 
-Angular 22 with standalone components, strict TypeScript, signals, and native
-EventSource. Includes a responsive live dashboard, a history page, and a CCTV demo.
+Angular 22 with Angular Material 22, standalone components, strict TypeScript,
+signals, and native EventSource. Includes a responsive live dashboard, a history page, and a CCTV demo.
 
 ## Run with Compose
 
@@ -51,6 +51,21 @@ in the frontend. The proxy forwards REST and long-lived SSE traffic; CORS
 configuration is not needed for this arrangement. Restart the development
 server after changing the target.
 
+## Material components
+
+All three routes share Material navigation tabs. The UI uses Material buttons,
+card surfaces, dialogs, form fields, selects, button toggles, table/paginator,
+slide toggle, and progress bars. Reading cards keep an accessible full-card button
+with a Material ripple. Telemetry gauges, history charts, and quality indicators
+remain custom visualizations.
+
+The compact Material 3 theme lives in `src/material-theme.scss`, using the
+supported Sass theme/override APIs, a green palette, and local system fonts.
+`src/styles.css` holds shared dashboard styles; component CSS handles responsive
+layout. All routes are lazy loaded. No external font or icon downloads are needed.
+After installing the new dependencies with `npm ci`, restart any running Angular
+development server so it picks up the additional global theme stylesheet.
+
 ## Live data behavior
 
 - Load names, tag keys, IDs, and units from `GET /api/telemetry/tags`.
@@ -80,7 +95,7 @@ reading is preserved. Missing data never fills a gauge. These are current-value
 indicators, not historical charts or health classifications.
 
 Small screens use a denser grid; short phones simplify the humidity tile to its
-numeric reading. Details open in a native dialog that supports Escape and restores
+numeric reading. Details open in a Material dialog that supports Escape and restores
 keyboard focus. The live page makes no historical requests.
 
 ## History
@@ -110,7 +125,7 @@ The start is inclusive and the end is exclusive.
   data already loaded. Changing the tag/range or leaving the page cancels any
   outstanding history request.
 
-Both pages use viewport-fitting layouts, with a denser layout on small screens.
+Live and History use viewport-fitting layouts, with a denser layout on small screens.
 Charts use native SVG; no chart library or simulated readings are included.
 
 ## CCTV demo
@@ -134,7 +149,8 @@ empty/malformed data, metadata retry, connection cleanup, quality/status mapping
 unit conversion, Taipei timestamps, missing-versus-zero rendering, and gauge
 scaling. History tests cover cursor paging, cancellation, retry, display limits,
 Taipei ranges, response validation, irregular sampling, quality gaps, and stepped
-status charts. Browser checks also cover viewport fit, reading details, keyboard
+status charts. Material dialog tests verify Taipei inputs, invalid ranges, and
+cancellation without applying a range. Browser checks also cover viewport fit, reading details, keyboard
 focus, history navigation and pagination, and network recovery.
 
 Production files are written to `dist/room-monitoring/browser` and copied into

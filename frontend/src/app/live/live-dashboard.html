@@ -1,5 +1,4 @@
 <div class="dashboard-shell">
-  <app-dashboard-tabs />
   <main id="main-content" class="workspace">
     <div class="page-heading">
       <div>
@@ -20,7 +19,9 @@
       <div class="empty-state">
         <h2>No tags available</h2>
         <p>Your room readings will appear here.</p>
-        <button type="button" (click)="telemetry.loadTags()">Refresh tags</button>
+        <button mat-stroked-button type="button" (click)="telemetry.loadTags()">
+          Refresh tags
+        </button>
       </div>
     } @else {
       <div class="board">
@@ -48,6 +49,7 @@
           <div class="diagnostic-grid">
             @for (tag of diagnostics(); track tag.id) {
               <button
+                matRipple
                 class="diagnostic-row"
                 type="button"
                 (click)="openDetails(tag)"
@@ -86,9 +88,13 @@
       <div class="notice" role="status">
         <span>{{ notice() }}</span>
         @if (telemetry.metadataError()) {
-          <button type="button" (click)="telemetry.loadTags()">Retry tags</button>
+          <button mat-stroked-button type="button" (click)="telemetry.loadTags()">
+            Retry tags
+          </button>
         } @else if (telemetry.connection() !== 'live' && telemetry.connection() !== 'connecting') {
-          <button type="button" (click)="telemetry.reconnect()">Reconnect</button>
+          <button mat-stroked-button type="button" (click)="telemetry.reconnect()">
+            Reconnect
+          </button>
         }
       </div>
     } @else {
@@ -97,4 +103,3 @@
     }
   </footer>
 </div>
-<app-reading-details #details [tag]="selectedTag()" (closed)="selectedId.set(null)" />

@@ -1,0 +1,23 @@
+.app-shell {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 38px minmax(0, 1fr);
+  gap: clamp(12px, 2.5vh, 28px);
+  padding-top: clamp(16px, 2.5vh, 32px);
+}
+mat-tab-nav-panel {
+  min-height: 0;
+}
+@media (max-width: 700px) {
+  .app-shell {
+    grid-template-rows: 32px minmax(0, 1fr);
+    gap: 12px;
+    padding-top: 14px;
+  }
+}
+@media (max-height: 680px) {
+  .app-shell {
+    padding-top: 8px;
+    gap: 8px;
+  }
+}
