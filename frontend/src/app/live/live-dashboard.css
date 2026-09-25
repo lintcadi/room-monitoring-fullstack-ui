@@ -10,45 +10,9 @@
   grid-template-rows: 38px minmax(0, 1fr) auto;
   gap: clamp(12px, 2.5vh, 28px);
 }
-.topbar,
-.topbar-right,
-.brand {
+.topbar-right {
   display: flex;
   align-items: center;
-}
-.topbar {
-  justify-content: space-between;
-  gap: 12px;
-}
-.brand {
-  gap: 10px;
-  color: var(--text);
-  font-size: 1.15rem;
-  font-weight: 650;
-  letter-spacing: -0.055em;
-  text-decoration: none;
-}
-.brand-light {
-  font-weight: 400;
-  color: var(--muted);
-  margin-left: -5px;
-}
-.brand-mark {
-  display: grid;
-  grid-template-columns: repeat(2, 5px);
-  gap: 3px;
-  padding: 8px;
-  background: var(--text);
-  border-radius: 9px;
-  margin-right: 2px;
-}
-.brand-mark i {
-  width: 5px;
-  height: 5px;
-  border-radius: 1px;
-  background: #f3f5ed;
-}
-.topbar-right {
   gap: 20px;
   font-size: 0.65rem;
 }
@@ -264,10 +228,6 @@ h1 > span {
     padding: 14px;
     grid-template-rows: 28px minmax(0, 1fr) auto;
     gap: 12px;
-  }
-  .brand {
-    font-size: 0.95rem;
-    gap: 7px;
   }
   .topbar-right {
     gap: 0;

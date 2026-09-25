@@ -18,6 +18,7 @@ import {
   qualityTone,
   readingAge,
 } from '../telemetry/telemetry.presentation';
+import { DashboardHeader } from '../shared/dashboard-header';
 import { ReadingCard } from './reading-card';
 import { ReadingDetails } from './reading-details';
 
@@ -25,7 +26,7 @@ const PRIMARY_KEYS = ['iaq', 'temperature_c', 'humidity_percent'];
 
 @Component({
   selector: 'app-live-dashboard',
-  imports: [ReadingCard, ReadingDetails],
+  imports: [ReadingCard, ReadingDetails, DashboardHeader],
   templateUrl: './live-dashboard.html',
   styleUrl: './live-dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,0 +1,102 @@
+<div class="chart-legend" aria-label="Telemetry quality legend">
+  <span><i class="good-line"></i>Good</span><span class="uncertain">◇ Uncertain</span
+  ><span class="bad">× Bad</span>
+  @if (hasUnknownQuality()) {
+    <span>□ Unknown</span>
+  }
+  <span class="chart-hint">Hover, tap, or use ← →</span>
+</div>
+<div
+  #canvas
+  class="chart-canvas"
+  tabindex="0"
+  role="group"
+  [attr.aria-label]="tag().name + ' history chart. Use left and right arrows to inspect readings.'"
+  (pointermove)="inspect($event)"
+  (pointerdown)="inspect($event)"
+  (keydown)="move($event)"
+>
+  <svg
+    [attr.viewBox]="'0 0 ' + size().width + ' ' + size().height"
+    role="img"
+    [attr.aria-label]="
+      tag().name + ' by observation time; ' + readings().length + ' readings loaded.'
+    "
+  >
+    @for (tick of plot().yTicks; track $index) {
+      <line
+        class="grid-line"
+        [attr.x1]="plot().left"
+        [attr.x2]="plot().right"
+        [attr.y1]="tick.y"
+        [attr.y2]="tick.y"
+      />
+      <text class="axis-label" [attr.x]="plot().left - 9" [attr.y]="tick.y + 3" text-anchor="end">
+        {{ yLabel(tick.value) }}
+      </text>
+    }
+    @for (tick of plot().xTicks; track $index) {
+      <text
+        class="axis-label"
+        [attr.x]="tick.x"
+        [attr.y]="size().height - 9"
+        [attr.text-anchor]="$first ? 'start' : $last ? 'end' : 'middle'"
+      >
+        {{ timeLabel(tick.time) }}
+      </text>
+    }
+    @for (path of plot().paths; track $index) {
+      <path class="series" [attr.d]="path" />
+    }
+    @for (point of plot().markers; track point.row.id) {
+      @switch (point.row.quality) {
+        @case (0) {
+          <circle class="good-point" [attr.cx]="point.x" [attr.cy]="point.y" r="3" />
+        }
+        @case (1) {
+          <path
+            class="uncertain-mark"
+            [attr.d]="'M ' + point.x + ' ' + (point.y - 4) + ' l 4 4 -4 4 -4 -4 Z'"
+          />
+        }
+        @case (2) {
+          <path
+            class="bad-mark"
+            [attr.d]="'M ' + (point.x - 3) + ' ' + (point.y - 3) + ' l 6 6 m -6 0 l 6 -6'"
+          />
+        }
+        @default {
+          <rect
+            class="unknown-mark"
+            [attr.x]="point.x - 3"
+            [attr.y]="point.y - 3"
+            width="6"
+            height="6"
+          />
+        }
+      }
+    }
+    @if (active(); as point) {
+      <line
+        class="crosshair"
+        [attr.x1]="point.x"
+        [attr.x2]="point.x"
+        [attr.y1]="plot().top"
+        [attr.y2]="plot().bottom"
+      />
+      <circle class="selected-point" [attr.cx]="point.x" [attr.cy]="point.y" r="4" />
+    }
+  </svg>
+</div>
+@if (active(); as point) {
+  <div class="selected-reading" role="status" aria-live="polite">
+    <strong
+      >{{ activeValue() }} <small>{{ unit() }}</small></strong
+    ><span class="badge" [attr.data-tone]="qualityTone(point.row.quality)">{{
+      qualityLabel(point.row.quality)
+    }}</span
+    ><time [attr.datetime]="point.row.observed_at" [title]="point.row.observed_at">{{
+      observedTime(point.row.observed_at)
+    }}</time>
+  </div>
+}

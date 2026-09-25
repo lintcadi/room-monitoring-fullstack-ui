@@ -1,8 +1,7 @@
 # Room monitoring frontend
 
 Angular 22 with standalone components, strict TypeScript, signals, and native
-EventSource. This checkpoint implements the responsive live dashboard; history
-will follow separately.
+EventSource. Includes a responsive live dashboard and a history page.
 
 ## Run with Compose
 
@@ -82,7 +81,37 @@ indicators, not historical charts or health classifications.
 
 Small screens use a denser grid; short phones simplify the humidity tile to its
 numeric reading. Details open in a native dialog that supports Escape and restores
-keyboard focus. No chart library, historical requests, or simulated data is added.
+keyboard focus. The live page makes no historical requests.
+
+## History
+
+Open **History** in the header or go directly to `/history`. Select any tag and
+choose the last 1, 6, or 24 hours, or enter a custom range. Custom date inputs and
+all displayed timestamps use Asia/Taipei, regardless of the browser's timezone.
+The start is inclusive and the end is exclusive.
+
+- Fetch one tag at a time from `GET /api/telemetry/history`, initially up to 1,000
+  readings. **Load more** passes the returned cursor with the same tag and range.
+- The chart always spans the requested interval. **Partial range** means more
+  pages remain; summary values describe only the loaded readings. At 5,000
+  readings, choose a narrower range to keep browser rendering bounded.
+- Numeric measurements use time-positioned lines; status flags and IAQ accuracy
+  use steps. Uncertain and bad readings have distinct markers and interrupt the
+  good-quality line. Minimum and maximum exclude readings of non-good quality.
+- Hover, tap, or use arrow keys on the chart to inspect observations. The
+  **Readings** view pages through the already loaded data; its arrows do not
+  fetch additional history. Values use the same units and precision as Live;
+  the value tooltip includes the raw number and original unit.
+- **Refresh** reruns the query to include late arrivals. Preset ranges advance
+  to the current time; custom ranges remain fixed. History does not poll or open
+  an SSE connection. Switching away from Live closes its stream, and returning
+  opens a fresh one.
+- Failed requests show a retry action. A failed additional page preserves the
+  data already loaded. Changing the tag/range or leaving the page cancels any
+  outstanding history request.
+
+Both pages use viewport-fitting layouts, with a denser layout on small screens.
+Charts use native SVG; no chart library or simulated readings are included.
 
 ## Checks
 
@@ -95,8 +124,10 @@ npm run format:check
 Tests cover independent tag updates, snapshot replacement, disconnect and recovery,
 empty/malformed data, metadata retry, connection cleanup, quality/status mappings,
 unit conversion, Taipei timestamps, missing-versus-zero rendering, and gauge
-scaling. Browser checks also cover viewport fit, reading details, keyboard focus,
-and network recovery.
+scaling. History tests cover cursor paging, cancellation, retry, display limits,
+Taipei ranges, response validation, irregular sampling, quality gaps, and stepped
+status charts. Browser checks also cover viewport fit, reading details, keyboard
+focus, history navigation and pagination, and network recovery.
 
 Production files are written to `dist/room-monitoring/browser` and copied into
 the Nginx image by the Dockerfile. The Angular development proxy is not included

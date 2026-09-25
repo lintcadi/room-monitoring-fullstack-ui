@@ -1,0 +1,77 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 0;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  table-layout: fixed;
+  font-size: 0.75rem;
+}
+th {
+  height: 26px;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.6rem;
+  padding: 4px 0;
+}
+th:first-child {
+  width: 50%;
+}
+th:nth-child(2) {
+  width: 30%;
+}
+td {
+  height: 36px;
+  padding: 4px 8px 4px 0;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+td small {
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.6rem;
+  flex-shrink: 0;
+}
+.table-pagination > div {
+  display: flex;
+  gap: 5px;
+}
+button {
+  min-height: 28px;
+  padding: 3px 10px;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+@media (max-width: 700px) {
+  table {
+    font-size: 0.6rem;
+  }
+  th {
+    font-size: 0.55rem;
+  }
+  td small {
+    font-size: 0.5rem;
+  }
+  .badge {
+    font-size: 0.53rem;
+    padding: 3px 4px;
+  }
+  .table-pagination {
+    font-size: 0.55rem;
+  }
+}

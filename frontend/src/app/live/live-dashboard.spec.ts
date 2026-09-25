@@ -1,5 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { EVENT_SOURCE_FACTORY } from '../telemetry/telemetry.service';
 import { LiveDashboard } from './live-dashboard';
@@ -12,6 +13,7 @@ describe('LiveDashboard', () => {
     TestBed.configureTestingModule({
       imports: [LiveDashboard],
       providers: [
+        provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: EVENT_SOURCE_FACTORY, useValue: () => source },

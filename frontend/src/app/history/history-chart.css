@@ -1,0 +1,135 @@
+:host {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+.chart-legend > span {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.good-line {
+  width: 13px;
+  height: 2px;
+  background: var(--accent);
+}
+.uncertain {
+  color: #92712f;
+}
+.bad {
+  color: #a74c3d;
+}
+.chart-hint {
+  margin-left: auto;
+}
+.chart-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  touch-action: pan-y;
+}
+svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.grid-line {
+  stroke: var(--line);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+.axis-label {
+  fill: var(--muted);
+  font-size: 10px;
+}
+.series {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.good-point {
+  fill: var(--accent);
+}
+.uncertain-mark {
+  fill: #fbf1d9;
+  stroke: #92712f;
+  stroke-width: 1.5;
+}
+.bad-mark {
+  fill: none;
+  stroke: #a74c3d;
+  stroke-width: 1.5;
+}
+.unknown-mark {
+  fill: var(--surface);
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+.crosshair {
+  stroke: #91a599;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.selected-point {
+  fill: var(--surface);
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+.selected-reading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  font-size: 0.7rem;
+  min-height: 30px;
+}
+.selected-reading strong {
+  font-size: 1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+small,
+time {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 400;
+}
+time {
+  margin-left: auto;
+}
+@media (max-width: 700px) {
+  .chart-legend {
+    font-size: 0.55rem;
+    gap: 10px;
+  }
+  .chart-hint {
+    display: none !important;
+  }
+  .selected-reading {
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-top: 6px;
+  }
+  .selected-reading strong {
+    font-size: 0.9rem;
+  }
+  time {
+    font-size: 0.55rem;
+  }
+  :host {
+    gap: 6px;
+  }
+}

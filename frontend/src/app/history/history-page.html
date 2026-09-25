@@ -1,0 +1,192 @@
+<div class="history-shell">
+  <app-dashboard-header
+    ><span class="header-context">BME680 <span> / </span> Asia/Taipei</span></app-dashboard-header
+  >
+  <main id="main-content">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">A CLOSER LOOK OVER TIME</p>
+        <h1>History<span>.</span></h1>
+      </div>
+      <span class="page-note">Recorded observations<br />Asia/Taipei · UTC+08:00</span>
+    </div>
+    @if (history.tagsLoading()) {
+      <div class="empty-state" role="status"><h2>Loading your tags…</h2></div>
+    } @else if (history.tagsError()) {
+      <div class="empty-state" role="alert">
+        <h2>Couldn’t load tags.</h2>
+        <button type="button" (click)="history.loadTags()">Retry tags</button>
+      </div>
+    } @else if (!history.tags().length) {
+      <div class="empty-state">
+        <h2>No tags available</h2>
+        <button type="button" (click)="history.loadTags()">Refresh tags</button>
+      </div>
+    } @else if (history.query(); as query) {
+      <div class="filters">
+        <label class="tag-picker"
+          ><span>MEASUREMENT</span
+          ><select aria-label="Measurement" [value]="query.tagId" (change)="changeTag($event)">
+            @for (tag of history.tags(); track tag.id) {
+              <option [value]="tag.id">{{ tag.name }}{{ tag.unit ? ' · ' + tag.unit : '' }}</option>
+            }
+          </select></label
+        >
+        <div class="range-picker" role="group" aria-label="Time range">
+          @for (hours of [1, 6, 24]; track hours) {
+            <button
+              type="button"
+              [class.active]="preset() === hours"
+              [attr.aria-pressed]="preset() === hours"
+              (click)="selectPreset(hours)"
+            >
+              {{ hours }}h
+            </button>
+          }
+          <button
+            type="button"
+            [class.active]="preset() === 'custom'"
+            [attr.aria-pressed]="preset() === 'custom'"
+            (click)="rangeDialog.open(query)"
+          >
+            Custom
+          </button>
+        </div>
+        <button class="refresh" type="button" (click)="refresh()" aria-label="Refresh history">
+          <span aria-hidden="true">↻</span><span class="refresh-label">Refresh</span>
+        </button>
+      </div>
+      <div class="range-caption">
+        <time>{{ observedTime(query.start) }}</time
+        ><span aria-hidden="true">→</span><time>{{ observedTime(query.end) }}</time
+        ><span class="range-zone">Taipei · end exclusive</span>
+      </div>
+      <div class="summary-grid" aria-label="Loaded reading summary">
+        <div>
+          <span>LOADED READINGS</span
+          ><strong>{{ history.readings().length | number }}<small> observations</small></strong>
+        </div>
+        @if (isStatus()) {
+          <div>
+            <span>STATES · GOOD QUALITY</span
+            ><strong>{{ states() }}<small> distinct</small></strong>
+          </div>
+          <div>
+            <span>GOOD QUALITY</span
+            ><strong>{{ goodReadings().length | number }}<small> readings</small></strong>
+          </div>
+        } @else {
+          <div>
+            <span>MINIMUM · GOOD QUALITY</span
+            ><strong
+              >{{ value(min()) }}<small>{{ min() ? unit() : '' }}</small></strong
+            >
+          </div>
+          <div>
+            <span>MAXIMUM · GOOD QUALITY</span
+            ><strong
+              >{{ value(max()) }}<small>{{ max() ? unit() : '' }}</small></strong
+            >
+          </div>
+        }
+      </div>
+      <section
+        class="history-panel"
+        aria-labelledby="chart-title"
+        [attr.aria-busy]="history.loading()"
+      >
+        <div class="panel-heading">
+          <div>
+            <h2 id="chart-title">
+              {{ history.tag()?.name }}<span>{{ unit() }}</span>
+            </h2>
+            <span class="completion" [class.partial]="history.nextCursor()">{{
+              completeness()
+            }}</span>
+          </div>
+          <div class="view-picker" role="group" aria-label="History view">
+            <button
+              type="button"
+              [class.active]="view() === 'chart'"
+              [attr.aria-pressed]="view() === 'chart'"
+              (click)="view.set('chart')"
+            >
+              Chart</button
+            ><button
+              type="button"
+              [class.active]="view() === 'table'"
+              [attr.aria-pressed]="view() === 'table'"
+              (click)="view.set('table')"
+            >
+              Readings
+            </button>
+          </div>
+        </div>
+        @if (history.error()) {
+          <div class="error-notice" role="alert">
+            <span
+              >Couldn’t load
+              {{
+                history.readings().length
+                  ? 'the next page. Loaded readings are kept.'
+                  : 'this range.'
+              }}</span
+            ><button type="button" (click)="history.retry()">Retry</button>
+          </div>
+        }
+        @if (!history.readings().length) {
+          <div class="plot-empty" role="status">
+            <span class="empty-symbol" aria-hidden="true">⌁</span>
+            <h3>
+              {{
+                history.loading()
+                  ? 'Looking back…'
+                  : history.error()
+                    ? 'History is unavailable'
+                    : 'No readings in this range'
+              }}
+            </h3>
+            <p>
+              {{
+                history.loading()
+                  ? 'Fetching recorded observations.'
+                  : 'Try another tag or time range.'
+              }}
+            </p>
+          </div>
+        } @else if (view() === 'chart') {
+          @if (history.tag(); as tag) {
+            <app-history-chart [readings]="history.readings()" [tag]="tag" [query]="query" />
+          }
+        } @else {
+          @if (history.tag(); as tag) {
+            <app-history-table [readings]="history.readings()" [tag]="tag" />
+          }
+        }
+        <div class="load-status" role="status">
+          <span>
+            @if (history.limitReached()) {
+              {{ maxReadings | number }}-reading limit. Narrow the range to inspect more.
+            } @else if (history.nextCursor()) {
+              More readings available. Chart and summaries cover loaded data only.
+            } @else if (history.loaded()) {
+              All available readings in this range are loaded.
+            } @else {
+              Times use each reading’s observation timestamp.
+            }
+          </span>
+          @if (history.nextCursor() && !history.limitReached()) {
+            <button type="button" [disabled]="history.loading()" (click)="history.loadMore()">
+              {{ history.loading() ? 'Loading…' : 'Load more' }}
+            </button>
+          }
+        </div>
+      </section>
+    }
+  </main>
+  <footer>
+    <span>Historical data · refresh to check for new arrivals</span
+    ><span class="footer-note">CO₂ & VOC equivalents are estimates.</span>
+  </footer>
+</div>
+<app-history-range #rangeDialog (selected)="custom($event)" />

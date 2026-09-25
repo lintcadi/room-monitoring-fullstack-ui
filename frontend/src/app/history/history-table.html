@@ -1,0 +1,50 @@
+<table>
+  <thead>
+    <tr>
+      <th scope="col">Observed · Taipei</th>
+      <th scope="col">Value</th>
+      <th scope="col">Quality</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of rows(); track row.id) {
+      <tr>
+        <td>
+          <time
+            [attr.datetime]="row.observed_at"
+            [title]="'Observed: ' + row.observed_at + '; ingested: ' + row.ingested_at"
+            >{{ observedTime(row.observed_at) }}</time
+          >
+        </td>
+        <td [title]="'Raw value: ' + row.value + (tag().unit ? ' ' + tag().unit : '')">
+          {{ value(row) }} <small>{{ unit() }}</small>
+        </td>
+        <td>
+          <span class="badge" [attr.data-tone]="qualityTone(row.quality)">{{
+            qualityLabel(row.quality)
+          }}</span>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+<div class="table-pagination">
+  <span>Page {{ current() + 1 }} of {{ pages() }} · loaded readings</span>
+  <div>
+    <button
+      type="button"
+      [disabled]="current() === 0"
+      (click)="page.set(current() - 1)"
+      aria-label="Previous readings page"
+    >
+      ←</button
+    ><button
+      type="button"
+      [disabled]="current() + 1 >= pages()"
+      (click)="page.set(current() + 1)"
+      aria-label="Next readings page"
+    >
+      →
+    </button>
+  </div>
+</div>

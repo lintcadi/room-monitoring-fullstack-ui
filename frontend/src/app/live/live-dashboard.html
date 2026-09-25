@@ -1,11 +1,5 @@
 <div class="dashboard-shell">
-  <header class="topbar">
-    <a class="brand" href="/" aria-label="Room monitor home"
-      ><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>room<span
-        class="brand-light"
-        >/ monitor</span
-      ></a
-    >
+  <app-dashboard-header>
     <div class="topbar-right">
       <span class="device-label">BME680</span
       ><span
@@ -15,7 +9,7 @@
         ><span class="dot" aria-hidden="true"></span>{{ connectionLabel() }}</span
       >
     </div>
-  </header>
+  </app-dashboard-header>
   <main id="main-content" class="workspace">
     <div class="page-heading">
       <div>
