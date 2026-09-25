@@ -1,8 +1,10 @@
 # Backend deployment and development
 
 The API reads telemetry directly from PostgreSQL. This repository's Compose
-file runs only the backend on the development PC, using the existing database
-configured in `backend/.env`. No local deployment repository is required.
+file runs the backend and Angular frontend on the development PC, using the
+existing database configured in `backend/.env`. No local deployment repository
+is required. The dashboard is available on port 8080; see
+[frontend setup](../frontend/README.md).
 
 ## Develop on this PC
 
@@ -24,7 +26,8 @@ docker compose up -d --build --wait
 docker compose ps
 ```
 
-Access `http://<development-pc-hostname-or-ip>:8000/docs`. Within the Compose
+Open `http://<development-pc-hostname-or-ip>:8080` for the dashboard or
+`http://<development-pc-hostname-or-ip>:8000/docs` for API documentation. Within the Compose
 network, the API is available at `http://backend:8000`.
 
 ```bash
@@ -127,10 +130,15 @@ Place this repository beside the existing repositories:
 │   └── compose.yaml
 └── room-monitoring-fullstack-ui/
     ├── compose.yaml
-    └── backend/
+    ├── backend/
+    │   ├── Dockerfile
+    │   ├── pyproject.toml
+    │   ├── uv.lock
+    │   └── src/
+    └── frontend/
         ├── Dockerfile
-        ├── pyproject.toml
-        ├── uv.lock
+        ├── nginx.conf
+        ├── package-lock.json
         └── src/
 ```
 
@@ -171,6 +179,11 @@ From `room-monitoring-deployment/`:
 ```bash
 docker compose up -d --build --wait backend
 ```
+
+Also add the frontend service with build context
+`../room-monitoring-fullstack-ui/frontend`, following
+[the frontend transfer instructions](../frontend/README.md#transfer-to-the-jetson).
+Then start both with `docker compose up -d --build --wait backend frontend`.
 
 Access `http://<jetson-hostname-or-ip>:8000/docs`. The combined deployment Compose
 file manages the Jetson services; this repository's Compose file remains the

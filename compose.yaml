@@ -1,0 +1,40 @@
+services:
+  frontend:
+    image: room-monitoring-frontend:local
+    build:
+      context: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://frontend/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  backend:
+    image: room-monitoring-backend:local
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 15s
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://backend:8000/api/health', timeout=5).close()"
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

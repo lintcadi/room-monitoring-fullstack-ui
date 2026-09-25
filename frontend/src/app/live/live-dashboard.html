@@ -1,0 +1,152 @@
+<header class="topbar">
+  <a class="brand" href="/" aria-label="Room monitor home">
+    <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span>Room monitor</span>
+  </a>
+  <span class="device-label"
+    >BME680 <span class="device-dot" aria-hidden="true">/</span> Environment sensor</span
+  >
+</header>
+<main id="main-content">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">ROOM MONITORING <span>/</span> LIVE</p>
+      <h1>Live overview<span class="title-dot">.</span></h1>
+      <p class="intro">A little more insight into the air around you.</p>
+    </div>
+    <div class="connection" role="status" aria-live="polite">
+      <span
+        class="badge"
+        [attr.data-tone]="telemetry.connection() === 'live' ? 'good' : 'uncertain'"
+        ><span class="dot" aria-hidden="true"></span>{{ connectionLabel() }}</span
+      >
+      <span class="timezone">Asia/Taipei · UTC+08:00</span>
+    </div>
+  </div>
+  <div class="overview-strip">
+    <div>
+      <span class="strip-label">READINGS AVAILABLE</span
+      ><strong
+        >{{ receivedCount() }} <span>/ {{ telemetry.tags().length }} tags</span></strong
+      >
+    </div>
+    <div>
+      <span class="strip-label">LAST HEARTBEAT</span
+      ><strong>{{ readingAge(heartbeat()?.reading?.observed_at, now()) }}</strong>
+    </div>
+    <p>Each tag has its own observation time.<br />Connection status describes the live stream.</p>
+  </div>
+  @if (telemetry.connection() !== 'live') {
+    <div class="notice" role="status">
+      <div>
+        @switch (telemetry.connection()) {
+          @case ('connecting') {
+            <strong>Connecting to live telemetry…</strong>
+          }
+          @case ('reconnecting') {
+            <strong>Connection interrupted. Reconnecting automatically…</strong>
+          }
+          @case ('unavailable') {
+            <strong>The backend cannot read telemetry right now.</strong>
+          }
+          @case ('invalid') {
+            <strong>The stream returned an unexpected response.</strong>
+          }
+        }
+        @if (telemetry.hasSnapshot()) {
+          <p>Showing the last received readings. Check their observation times.</p>
+        } @else {
+          <p>Waiting for the first snapshot from the sensor data.</p>
+        }
+      </div>
+      @if (telemetry.connection() !== 'connecting') {
+        <button type="button" (click)="telemetry.reconnect()">Reconnect</button>
+      }
+    </div>
+  }
+  @if (telemetry.metadataError()) {
+    <div class="notice" role="alert">
+      <div>
+        <strong>Couldn’t load the tag list.</strong>
+        <p>Retry to show the sensor’s readings and units.</p>
+      </div>
+      <button type="button" (click)="telemetry.loadTags()">Retry tag list</button>
+    </div>
+  } @else if (telemetry.metadataLoading()) {
+    <div class="empty-state" role="status">
+      <h2>Loading sensor tags…</h2>
+      <p>The dashboard will appear when the tag list is available.</p>
+    </div>
+  } @else if (!telemetry.tags().length) {
+    <div class="empty-state">
+      <h2>No tags configured</h2>
+      <p>Tags will appear here once they’re available from the backend.</p>
+      <button type="button" (click)="telemetry.loadTags()">Refresh tag list</button>
+    </div>
+  } @else {
+    @if (telemetry.hasSnapshot() && !receivedCount()) {
+      <div class="notice" role="status">
+        <div>
+          <strong>No readings yet.</strong>
+          <p>The tags are ready. Waiting for their first observations.</p>
+        </div>
+      </div>
+    }
+    @for (section of sections(); track section.id) {
+      <section [attr.aria-labelledby]="section.id">
+        <div class="section-heading">
+          <div>
+            <span class="section-number">{{ section.number }}</span>
+            <h2 [id]="section.id">{{ section.title }}</h2>
+          </div>
+          <p>{{ section.description }}</p>
+        </div>
+        <div class="reading-grid">
+          @for (tag of section.tags; track tag.id) {
+            <app-reading-card [tag]="tag" [now]="now()" [accuracy]="accuracy()" />
+          }
+        </div>
+      </section>
+    }
+    @if (diagnostics().length) {
+      <section aria-labelledby="diagnostics-title">
+        <div class="section-heading">
+          <div>
+            <span class="section-number">04</span>
+            <h2 id="diagnostics-title">Sensor diagnostics</h2>
+          </div>
+          <p>Readiness, accuracy, and device activity.</p>
+        </div>
+        <div class="diagnostics">
+          <div class="diagnostic-header" aria-hidden="true">
+            <span>SIGNAL</span><span>LATEST VALUE</span><span>TELEMETRY QUALITY</span
+            ><span>OBSERVED · TAIPEI</span>
+          </div>
+          @for (tag of diagnostics(); track tag.id) {
+            <div class="diagnostic-row">
+              <h3>{{ tag.name }}</h3>
+              <span class="diagnostic-value">{{ displayValue(tag) }}</span>
+              <span
+                class="badge"
+                [attr.data-tone]="qualityTone(tag.reading?.quality)"
+                [attr.aria-label]="'Telemetry quality: ' + qualityLabel(tag.reading?.quality)"
+                ><span class="dot" aria-hidden="true"></span
+                >{{ qualityLabel(tag.reading?.quality) }}</span
+              >
+              <div class="diagnostic-time">
+                <span>{{ readingAge(tag.reading?.observed_at, now()) }}</span
+                ><time [attr.datetime]="tag.reading?.observed_at">{{
+                  observedTime(tag.reading?.observed_at)
+                }}</time>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  }
+  <footer class="page-footer">
+    <span>ROOM MONITOR <span class="footer-separator">/</span> BME680</span
+    ><span>CO₂ and breath VOC equivalents are estimates.</span>
+  </footer>
+</main>
