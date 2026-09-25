@@ -1,13 +1,17 @@
 from base64 import b64decode, urlsafe_b64encode
+from collections.abc import AsyncIterator
+from contextlib import aclosing
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi.sse import EventSourceResponse, ServerSentEvent
 from pydantic import BaseModel, Field
 
 from backend.config import settings
 from backend.database import pool
 from backend.telemetry import LatestTelemetryResponse, TelemetryValue, fetch_latest_telemetry
+from backend.telemetry_stream import TelemetryStream
 
 router = APIRouter(
     prefix="/telemetry",
@@ -111,6 +115,23 @@ async def get_latest_telemetry_tags(
 ) -> LatestTelemetryResponse:
     """Get the latest observation per tag, matching both filters when supplied."""
     return await fetch_latest_telemetry(tag_name=tag_name, tag_ids=tag_ids)
+
+
+@router.get("/stream", response_class=EventSourceResponse)
+async def stream_telemetry(
+        request: Request,
+        tag_name: Annotated[list[str] | None, Query(description="Filter tags by tag key")] = None,
+        tag_ids: Annotated[list[int] | None, Query(description="Filter tags by id")] = None,
+) -> AsyncIterator[ServerSentEvent]:
+    """Stream an initial snapshot and changes to the latest reading of each tag.
+
+    Both filters must match when supplied. Reconnection starts a new snapshot;
+    intermediate measurements are available through history, not replayed here.
+    """
+    stream: TelemetryStream = request.app.state.telemetry_stream
+    async with aclosing(stream.events(tag_name=tag_name, tag_ids=tag_ids)) as events:
+        async for event in events:
+            yield event
 
 
 @router.get("/history", response_model=HistoricalTelemetryResponse)

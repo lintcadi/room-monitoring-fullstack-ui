@@ -6,12 +6,19 @@ from fastapi import FastAPI
 from backend.config import settings
 from backend.routers import health, telemetry
 from backend.database import connect_db, disconnect_db
+from backend.telemetry_stream import TelemetryStream
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         await connect_db()
-        yield
+        stream = TelemetryStream()
+        app.state.telemetry_stream = stream
+        stream.start()
+        try:
+            yield
+        finally:
+            await stream.stop()
     finally:
         await disconnect_db()
 
