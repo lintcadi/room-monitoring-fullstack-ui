@@ -1,6 +1,5 @@
 from zoneinfo import ZoneInfo
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,9 +12,6 @@ class Settings(BaseSettings):
     postgres_db: str
     postgres_user: str
     postgres_password: str
-
-    redis_url: str = "redis://redis:6379/0"
-    telemetry_poll_interval_seconds: float = Field(default=5, gt=0)
 
     model_config = SettingsConfigDict(
         env_file=".env",
