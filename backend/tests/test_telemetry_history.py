@@ -11,7 +11,7 @@ from fastapi import FastAPI
 
 # Import the router without requiring local credentials or opening a database.
 with patch.dict(os.environ, {
-    "POSTGRES_HOST": "localhost",
+    "POSTGRES_HOST": "postgres.test",
     "POSTGRES_PORT": "5432",
     "POSTGRES_DB": "test",
     "POSTGRES_USER": "test",
