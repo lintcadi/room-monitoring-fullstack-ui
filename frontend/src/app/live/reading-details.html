@@ -19,13 +19,19 @@
       </p>
       <dl>
         <div>
-          <dt>Telemetry quality</dt>
+          <dt>Data quality</dt>
           <dd>
             <span class="badge" [attr.data-tone]="qualityTone(tag.reading?.quality)">{{
               qualityLabel(tag.reading?.quality)
             }}</span>
           </dd>
         </div>
+        @if (assessment(); as assessment) {
+          <div>
+            <dt>{{ definition()?.title }}</dt>
+            <dd [style.color]="assessment.color">{{ assessment.label }}</dd>
+          </div>
+        }
         <div>
           <dt>Observed</dt>
           <dd>{{ observedTime(tag.reading?.observed_at) }}</dd>
@@ -43,32 +49,34 @@
           <dd class="tag-key">{{ tag.tag_key }}</dd>
         </div>
       </dl>
-      @switch (tag.tag_key) {
-        @case ('iaq') {
+      @if (definition(); as definition) {
+        <p class="detail-note">{{ definition.note }}</p>
+        @if (assessment()?.range === null) {
+          <p class="detail-note">{{ assessment()?.reason }}</p>
+        }
+        <table class="value-bands" [attr.aria-label]="definition.title + ' ranges'">
+          <thead>
+            <tr>
+              <th scope="col">Range / code</th>
+              <th scope="col">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (band of definition.bands; track band.range) {
+              <tr [class.current-band]="assessment()?.range === band.range">
+                <td>{{ band.range }}</td>
+                <td [style.color]="band.color">{{ band.label }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (definition.source; as source) {
           <p class="detail-note">
-            Bosch IAQ index, 0–500. Lower values indicate cleaner air. Check IAQ accuracy in sensor
-            diagnostics.
+            <a [href]="source.url" target="_blank" rel="noopener noreferrer">{{ source.label }}</a>
           </p>
         }
-        @case ('co2_equivalent_ppm') {
-          <p class="detail-note">
-            An estimate derived from VOC behavior, not a direct CO₂ measurement.
-          </p>
-        }
-        @case ('breath_voc_equivalent_ppm') {
-          <p class="detail-note">A calculated breath VOC equivalent estimate.</p>
-        }
-        @case ('gas_percentage') {
-          <p class="detail-note">
-            A relative indicator based on this sensor’s history, not a gas concentration.
-          </p>
-        }
-        @case ('heartbeat') {
-          <p class="detail-note">
-            Device-reported heartbeat value. Its observation time is separate from the browser’s
-            live connection status.
-          </p>
-        }
+      } @else {
+        <p class="detail-note">No value ranges have been defined for this tag.</p>
       }
     </mat-dialog-content>
   }

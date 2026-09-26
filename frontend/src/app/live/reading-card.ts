@@ -11,6 +11,7 @@ import {
   readingAge,
 } from '../telemetry/telemetry.presentation';
 import { TelemetryGauge } from './telemetry-gauge';
+import { readingAssessment } from '../telemetry/reading-ranges';
 
 @Component({
   selector: 'app-reading-card',
@@ -24,6 +25,7 @@ export class ReadingCard {
   readonly now = input.required<number>();
   readonly featured = input(false);
   readonly selected = output<TagView>();
+  protected readonly assessment = computed(() => readingAssessment(this.tag()));
   protected readonly label = computed(
     () =>
       (
@@ -36,9 +38,6 @@ export class ReadingCard {
           static_iaq: 'Static IAQ',
         }) as Record<string, string>
       )[this.tag().tag_key] ?? this.tag().name,
-  );
-  protected readonly percentage = computed(() =>
-    Math.max(0, Math.min(100, this.tag().reading?.value ?? 0)),
   );
   protected readonly displayValue = displayValue;
   protected readonly displayUnit = displayUnit;

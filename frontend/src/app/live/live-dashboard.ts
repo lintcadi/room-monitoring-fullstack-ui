@@ -20,6 +20,7 @@ import {
   qualityTone,
   readingAge,
 } from '../telemetry/telemetry.presentation';
+import { readingAssessment } from '../telemetry/reading-ranges';
 import { ReadingCard } from './reading-card';
 import { ReadingDetails } from './reading-details';
 
@@ -87,6 +88,7 @@ export class LiveDashboard implements OnInit, OnDestroy {
         heartbeat: 'Heartbeat',
       }) as Record<string, string>
     )[key] ?? fallback;
+  protected readonly readingAssessment = readingAssessment;
   protected readonly displayValue = displayValue;
   protected readonly qualityLabel = qualityLabel;
   protected readonly qualityTone = qualityTone;

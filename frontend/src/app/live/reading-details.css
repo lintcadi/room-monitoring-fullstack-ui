@@ -53,3 +53,26 @@ dd {
   color: var(--muted);
   letter-spacing: 0.13em;
 }
+.value-bands {
+  width: 100%;
+  border-collapse: collapse;
+  margin-block: 12px;
+  text-align: left;
+  font-size: 0.7rem;
+}
+.value-bands th,
+.value-bands td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.value-bands th {
+  font-weight: 500;
+  color: var(--muted);
+}
+.current-band {
+  background: #f0f2ee;
+  font-weight: 650;
+}
+.detail-note a {
+  color: var(--accent);
+}

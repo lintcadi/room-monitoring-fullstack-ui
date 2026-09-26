@@ -81,7 +81,8 @@ development server so it picks up the additional global theme stylesheet.
 - Telemetry quality is separate from IAQ accuracy: 0 Good, 1 Uncertain, 2 Bad.
   Sensor status 0 is Healthy; other codes remain visible without an invented label.
 - Gas resistance in ohms is displayed in kiloohms. CO2 and breath VOC equivalents
-  remain labeled as estimates. No air-quality thresholds or alarms are inferred.
+  remain labeled as estimates. Value ranges and diagnostic states are defined centrally
+  in `src/app/telemetry/reading-ranges.ts`; these are display interpretations, not alarms.
 - Every tag shows its observation age. Select any reading or diagnostic to see
   its full observed/ingested timestamps in Asia/Taipei, quality, and tag key.
   Stream status and heartbeat age remain separate. No stale timeout is assumed
@@ -92,11 +93,58 @@ IAQ, temperature, and humidity tiles plus compact measurements and diagnostics.
 SVG gauges show IAQ on a 0–500 scale and humidity on a 0–100 scale. Gas percentage
 has a small 0–100 meter. Gauge arcs are clamped to their visual range; the numeric
 reading is preserved. Missing data never fills a gauge. These are current-value
-indicators, not historical charts or health classifications.
+indicators rather than historical charts. IAQ uses the Bosch classification below;
+humidity and gas percentage gauges do not classify health effects.
 
 Small screens use a denser grid; short phones simplify the humidity tile to its
 numeric reading. Details open in a Material dialog that supports Escape and restores
 keyboard focus. The live page makes no historical requests.
+
+### Value ranges and data quality
+
+Card quality indicators are labeled **Data** (for example, **Data: Good** on larger
+cards); compact cards retain the Data label with the full status in the tooltip
+and reading details. This comes from the reading's `quality` field, independently
+of the measured value.
+
+The IAQ card also shows a separate air-quality label, gauge color, and background
+based on [Bosch's BME680 datasheet, Table 4](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme680-ds001.pdf#page=9).
+For example, **167.3 → Moderately polluted (orange)**, even with good data quality.
+The details dialog lists all seven bands. The implementation uses consecutive
+upper bounds (50, 100, 150, 200, 250, 350, 500), without rounding the input, to
+avoid gaps for fractional values. Colors follow the Bosch hues with darker text
+for legibility.
+
+Missing, non-good-quality, or out-of-range readings have a neutral classification
+state. The reported number is preserved. IAQ accuracy remains a separate diagnostic;
+the band is not a guarantee of measurement accuracy or a health assessment.
+These bands apply only to `iaq`, not the unscaled `static_iaq` or CO₂/VOC equivalents.
+
+All 14 tags have definitions visible in their reading details, including source links
+where applicable. The current range is highlighted only for good-quality readings.
+Cards show the value interpretation separately from **Data** quality; diagnostic
+values use their state color. Unknown tags stay visible without an invented range.
+
+| Reading                                | Definition                                                                                                                                                                                                              |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Temperature                            | App comfort target: **20–26°C** inclusive. Below: Cool; above: Warm. Outside the sensor’s −40–85°C operating range: out of range. Change `TEMPERATURE_TARGET` to adjust the app target; it is not a health standard.    |
+| Humidity                               | **<30% Dry**, **30–50% In target**, **>50–<60% Elevated**, **60–100% High humidity**. Outside 0–100%: out of range. Based on [EPA moisture guidance](https://www.epa.gov/mold/brief-guide-mold-moisture-and-your-home). |
+| Pressure                               | **300–1100 hPa** sensor range; neutral because altitude and weather affect pressure.                                                                                                                                    |
+| Gas resistance                         | **>0 Ω** plausibility check; relative signal without an absolute clean-air threshold. Display conversion to kΩ does not affect classification.                                                                          |
+| Static IAQ                             | **≥0**, no fixed upper limit; neutral unscaled index, not the scaled IAQ bands.                                                                                                                                         |
+| CO₂ equivalent / breath VOC equivalent | **≥0 ppm** plausibility check only; neutral estimates. Bosch describes typical minima near 400 ppm / 0.3 ppm, not hard validation limits. No direct-CO₂ or specific-VOC health thresholds are borrowed.                 |
+| Gas percentage                         | **0–100%** relative scale; not a measured concentration or percentage of safe air.                                                                                                                                      |
+| IAQ accuracy                           | Integer codes **0 Unreliable, 1 Low, 2 Medium, 3 High**.                                                                                                                                                                |
+| Stabilization / run-in                 | **0 In progress, 1 Complete**; other values are out of range.                                                                                                                                                           |
+| Sensor status                          | **0 Healthy** (project convention); other integer codes: Check status, with the original code retained.                                                                                                                 |
+| Heartbeat                              | Any finite device-reported value; protocol range and cadence are unspecified. No online/offline state is inferred from its value.                                                                                       |
+
+The hardware ranges come from the [Bosch datasheet](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme680-ds001.pdf).
+Equivalent output behavior is described in [Bosch’s output-range explanation](https://community.bosch-sensortec.com/mems-sensors-forum-jrmujtaw/post/units-and-ranges-for-iaq-iaq-accuracy-static-iaq-co2-equivalent-DlJQ734tSGoHlMD).
+A neutral “In sensor range” or “Estimate” label does not certify healthy air.
+Raw values are classified before rounding. Numeric values remain visible even
+when interpretation is unavailable. History still presents recorded values and
+data quality; the range definitions are shown in Live reading details.
 
 ## History
 

@@ -57,7 +57,7 @@
                   tag.name +
                   ': ' +
                   displayValue(tag) +
-                  '. Quality: ' +
+                  '. Data quality: ' +
                   qualityLabel(tag.reading?.quality) +
                   '. View details.'
                 "
@@ -67,10 +67,14 @@
                   }}<span
                     class="quality-dot"
                     [attr.data-tone]="qualityTone(tag.reading?.quality)"
-                    [title]="'Telemetry quality: ' + qualityLabel(tag.reading?.quality)"
+                    [title]="'Data quality: ' + qualityLabel(tag.reading?.quality)"
                     ><span class="dot" aria-hidden="true"></span></span
                 ></span>
-                <strong class="diagnostic-value">{{ displayValue(tag) }}</strong
+                <strong
+                  class="diagnostic-value"
+                  [style.color]="readingAssessment(tag)?.color"
+                  [title]="readingAssessment(tag)?.label ?? ''"
+                  >{{ displayValue(tag) }}</strong
                 ><span
                   class="diagnostic-age"
                   [title]="observedTime(tag.reading?.observed_at) + ' · Asia/Taipei'"
