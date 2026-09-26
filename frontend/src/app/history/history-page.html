@@ -175,7 +175,7 @@
             @if (history.limitReached()) {
               {{ maxReadings | number }}-reading limit. Narrow the range to inspect more.
             } @else if (history.nextCursor()) {
-              More readings available. Chart and summaries cover loaded data only.
+              More readings available. Load more to extend chart navigation.
             } @else if (history.loaded()) {
               All available readings in this range are loaded.
             } @else {

@@ -56,8 +56,8 @@ server after changing the target.
 All three routes share Material navigation tabs. The UI uses Material buttons,
 card surfaces, dialogs, form fields, selects, button toggles, table/paginator,
 slide toggle, and progress bars. Reading cards keep an accessible full-card button
-with a Material ripple. Telemetry gauges, history charts, and quality indicators
-remain custom visualizations.
+with a Material ripple. Telemetry gauges and quality indicators remain custom visualizations.
+History charts use ApexCharts through `ng-apexcharts`.
 
 The compact Material 3 theme lives in `src/material-theme.scss`, using the
 supported Sass theme/override APIs, a green palette, and local system fonts.
@@ -158,7 +158,7 @@ one-hour range automatically.
 
 - Fetch one tag at a time from `GET /api/telemetry/history`, initially up to 1,000
   readings. **Load more** passes the returned cursor with the same tag and range.
-- The chart always spans the requested interval. **Partial range** means more
+- **Fit all** spans the requested interval. **Partial range** means more
   pages remain; summary values describe only the loaded readings. At 5,000
   readings, choose a narrower range to keep browser rendering bounded.
 - Numeric measurements use time-positioned lines; status flags and IAQ accuracy
@@ -167,7 +167,7 @@ one-hour range automatically.
 - Hover, tap, or use arrow keys on the chart to inspect observations. The
   **Readings** view pages through the already loaded data; its arrows do not
   fetch additional history. Values use the same units and precision as Live;
-  the value tooltip includes the raw number and original unit.
+  the Readings table’s value tooltip includes the raw number and original unit.
 - **Refresh** reruns the applied query to include late arrivals, leaving any
   pending filter edits untouched. **Load more** also uses the applied filters. Preset ranges advance
   to the current time; custom ranges remain fixed. History does not poll or open
@@ -177,8 +177,41 @@ one-hour range automatically.
   data already loaded. Applying filters or leaving the page cancels any
   outstanding history request.
 
+History charts use **ApexCharts** through the standalone `ng-apexcharts` component.
+The library handles SVG rendering, axes, tooltips, native zoom/pan, keyboard
+navigation and touch gestures. A small app overlay selects tooltip readings by
+timestamp so sparse quality series do not change the selected time with pointer height. It loads only when the History chart is opened.
+
+The initial view contains the first **100 readings (100%)**. With 100 or fewer
+readings, the full requested time range is shown and navigation controls are hidden.
+Use the Apex toolbar’s +/− buttons, scroll wheel or pinch gesture to zoom. Pan mode
+is selected initially; drag horizontally to move through time. The magnifier tool
+switches to rectangle zoom. The percentage button resets to the first 100 readings;
+**Fit all** shows all loaded data across the requested interval. Percentage is
+based on the number of visible readings, so it varies with irregular sampling.
+Readings with identical timestamps stay together, including at the 100-reading boundary.
+
+The horizontal axis uses actual timestamps formatted in Asia/Taipei. The shared
+vertical axis covers all loaded values, including non-good quality, and stays
+stable during pan/zoom. Each quality has its own series: good data is connected
+with gaps at non-good readings; other qualities use markers without connecting
+lines. Status tags use steps. Move horizontally anywhere inside the plot to inspect
+the nearest timestamp; pointer height does not affect selection. A vertical dashed
+guide marks the selected time, a horizontal guide marks its value, and one tooltip
+shows the reading’s value, unit and data quality. You can also focus
+the chart and use native arrow-key navigation (+/− zoom, Shift+←/→ pan).
+
+Zoom and pan make no backend requests. **Load more** extends the available data
+without moving the current time window. Applying filters or refreshing resets the
+chart. Switching from Readings back to Chart also starts a new view. Summary cards
+always describe all loaded readings, while the chart caption counts visible readings.
+
 Live and History use viewport-fitting layouts, with a denser layout on small screens.
-Charts use native SVG; no chart library or simulated readings are included.
+Live gauges remain custom SVG. There are no simulated telemetry readings.
+
+ApexCharts is distributed under [Community/commercial licensing](https://apexcharts.com/license/).
+The installed versions are recorded in `package-lock.json`; recheck the applicable
+terms if this personal demo becomes a commercial or redistributed product.
 
 ## CCTV demo
 

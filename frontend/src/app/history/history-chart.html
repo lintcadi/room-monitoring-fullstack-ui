@@ -1,102 +1,75 @@
 <div class="chart-legend" aria-label="Telemetry quality legend">
-  <span><i class="good-line"></i>Good</span><span class="uncertain">◇ Uncertain</span
+  <span class="good">● Good</span><span class="uncertain">◇ Uncertain</span
   ><span class="bad">× Bad</span>
   @if (hasUnknownQuality()) {
     <span>□ Unknown</span>
   }
-  <span class="chart-hint">Hover, tap, or use ← →</span>
-</div>
-<div
-  #canvas
-  class="chart-canvas"
-  tabindex="0"
-  role="group"
-  [attr.aria-label]="tag().name + ' history chart. Use left and right arrows to inspect readings.'"
-  (pointermove)="inspect($event)"
-  (pointerdown)="inspect($event)"
-  (keydown)="move($event)"
->
-  <svg
-    [attr.viewBox]="'0 0 ' + size().width + ' ' + size().height"
-    role="img"
-    [attr.aria-label]="
-      tag().name + ' by observation time; ' + readings().length + ' readings loaded.'
-    "
-  >
-    @for (tick of plot().yTicks; track $index) {
-      <line
-        class="grid-line"
-        [attr.x1]="plot().left"
-        [attr.x2]="plot().right"
-        [attr.y1]="tick.y"
-        [attr.y2]="tick.y"
-      />
-      <text class="axis-label" [attr.x]="plot().left - 9" [attr.y]="tick.y + 3" text-anchor="end">
-        {{ yLabel(tick.value) }}
-      </text>
-    }
-    @for (tick of plot().xTicks; track $index) {
-      <text
-        class="axis-label"
-        [attr.x]="tick.x"
-        [attr.y]="size().height - 9"
-        [attr.text-anchor]="$first ? 'start' : $last ? 'end' : 'middle'"
+  @if (navigable()) {
+    <div class="chart-navigation">
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="resetZoom()"
+        aria-label="Reset zoom to 100 readings"
+        title="Reset to the first 100 readings"
       >
-        {{ timeLabel(tick.time) }}
-      </text>
-    }
-    @for (path of plot().paths; track $index) {
-      <path class="series" [attr.d]="path" />
-    }
-    @for (point of plot().markers; track point.row.id) {
-      @switch (point.row.quality) {
-        @case (0) {
-          <circle class="good-point" [attr.cx]="point.x" [attr.cy]="point.y" r="3" />
-        }
-        @case (1) {
-          <path
-            class="uncertain-mark"
-            [attr.d]="'M ' + point.x + ' ' + (point.y - 4) + ' l 4 4 -4 4 -4 -4 Z'"
-          />
-        }
-        @case (2) {
-          <path
-            class="bad-mark"
-            [attr.d]="'M ' + (point.x - 3) + ' ' + (point.y - 3) + ' l 6 6 m -6 0 l 6 -6'"
-          />
-        }
-        @default {
-          <rect
-            class="unknown-mark"
-            [attr.x]="point.x - 3"
-            [attr.y]="point.y - 3"
-            width="6"
-            height="6"
-          />
-        }
-      }
-    }
-    @if (active(); as point) {
-      <line
-        class="crosshair"
-        [attr.x1]="point.x"
-        [attr.x2]="point.x"
-        [attr.y1]="plot().top"
-        [attr.y2]="plot().bottom"
-      />
-      <circle class="selected-point" [attr.cx]="point.x" [attr.cy]="point.y" r="4" />
-    }
-  </svg>
+        {{ zoomLabel() }}
+      </button>
+      <button mat-stroked-button type="button" (click)="fitAll()">Fit all</button>
+    </div>
+  }
 </div>
-@if (active(); as point) {
-  <div class="selected-reading" role="status" aria-live="polite">
-    <strong
-      >{{ activeValue() }} <small>{{ unit() }}</small></strong
-    ><span class="badge" [attr.data-tone]="qualityTone(point.row.quality)">{{
-      qualityLabel(point.row.quality)
-    }}</span
-    ><time [attr.datetime]="point.row.observed_at" [title]="point.row.observed_at">{{
-      observedTime(point.row.observed_at)
-    }}</time>
-  </div>
-}
+<div class="window-caption">
+  {{ visible().length }} / {{ ordered().length }} loaded readings in view
+</div>
+<div #canvas class="chart-canvas" (pointerleave)="hover.set(null)" (keydown)="inspectKey($event)">
+  <apx-chart
+    [chart]="options().chart"
+    [series]="options().series"
+    [xaxis]="options().xaxis"
+    [yaxis]="options().yaxis"
+    [stroke]="options().stroke"
+    [tooltip]="options().tooltip"
+    [markers]="markers"
+    [colors]="colors"
+    [dataLabels]="dataLabels"
+    [legend]="legend"
+    [grid]="grid"
+    (chartReady)="ready()"
+  />
+  @if (hover(); as focus) {
+    <span
+      class="hover-guide vertical"
+      aria-hidden="true"
+      [style.left.px]="focus.x"
+      [style.top.px]="focus.top"
+      [style.height.px]="focus.height"
+    ></span>
+    <span
+      class="hover-guide horizontal"
+      aria-hidden="true"
+      [style.left.px]="focus.left"
+      [style.top.px]="focus.y"
+      [style.width.px]="focus.width"
+    ></span>
+    <span
+      class="hover-point"
+      aria-hidden="true"
+      [style.left.px]="focus.x"
+      [style.top.px]="focus.y"
+    ></span>
+    <div
+      class="reading-tooltip"
+      role="status"
+      [class.on-left]="focus.x > focus.left + focus.width / 2"
+    >
+      <time>{{ observedTime(focus.row.observed_at) }}</time>
+      <strong
+        >{{ hoverValue() }} <small>{{ hoverUnit() }}</small></strong
+      >
+      <span class="badge" [attr.data-tone]="qualityTone(focus.row.quality)"
+        >Data: {{ qualityLabel(focus.row.quality) }}</span
+      >
+    </div>
+  }
+</div>

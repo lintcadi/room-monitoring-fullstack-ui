@@ -12,6 +12,20 @@ import { HistoryPage } from './history-page';
 import { HistoryService } from './history.service';
 import { HistoryRange } from './history-range';
 
+// Rendering and gestures are covered by browser checks; these tests exercise filters.
+vi.mock('apexcharts/client', () => ({
+  default: class {
+    render() {
+      return Promise.resolve(this);
+    }
+    destroy() {}
+    updateSeries() {
+      return Promise.resolve(this);
+    }
+    zoomX() {}
+  },
+}));
+
 const now = Date.parse('2026-09-26T04:00:00Z');
 
 describe('History filter application', () => {
