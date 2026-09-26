@@ -60,3 +60,13 @@ tr:first-child {
     padding: 3px 4px;
   }
 }
+
+.multiple th:first-child {
+  width: 34%;
+}
+.multiple th:nth-child(2) {
+  width: 26%;
+}
+.multiple th:nth-child(3) {
+  width: 22%;
+}

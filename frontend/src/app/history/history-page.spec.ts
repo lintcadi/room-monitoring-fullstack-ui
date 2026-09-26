@@ -35,8 +35,11 @@ describe('History filter application', () => {
   let history: HistoryService;
   const request = () => http.expectOne((r) => r.url === '/api/telemetry/history');
   const button = (text: string) => loader.getHarness(MatButtonHarness.with({ text }));
-  const selectTag = async (text: string) =>
-    (await loader.getHarness(MatSelectHarness)).clickOptions({ text });
+  const selectTag = async (text: string) => {
+    const select = await loader.getHarness(MatSelectHarness);
+    await select.clickOptions({ text });
+    await select.close();
+  };
   const selectPreset = async (text: string) =>
     (await loader.getHarness(MatButtonToggleHarness.with({ text }))).check();
 
@@ -107,7 +110,7 @@ describe('History filter application', () => {
     vi.spyOn(Date, 'now').mockReturnValue(now + 60000);
     await (await button('Apply')).click();
     const updated = request();
-    expect(updated.request.params.get('tag_ids')).toBe('2');
+    expect(updated.request.params.getAll('tag_ids')).toEqual(['1', '2']);
     expect(updated.request.params.get('end')).toBe(new Date(now + 60000).toISOString());
     expect(
       Date.parse(updated.request.params.get('end')!) -
@@ -132,7 +135,7 @@ describe('History filter application', () => {
         Date.parse(refresh.request.params.get('start')!),
     ).toBe(3600000);
     refresh.flush({ readings: [], next_cursor: null });
-    expect(await (await loader.getHarness(MatSelectHarness)).getValueText()).toBe('Humidity · %');
+    expect(await (await loader.getHarness(MatSelectHarness)).getValueText()).toBe('2 measurements');
     expect(
       await (await loader.getHarness(MatButtonToggleHarness.with({ text: '24h' }))).isChecked(),
     ).toBe(true);
@@ -174,9 +177,62 @@ describe('History filter application', () => {
   it('clears the pending indicator when the user restores the applied selections', async () => {
     await selectTag('Humidity · %');
     await selectPreset('6h');
-    await selectTag('Temperature · °C');
+    await selectTag('Humidity · %');
     await selectPreset('1h');
     http.expectNone((r) => r.url === '/api/telemetry/history');
     expect(fixture.nativeElement.textContent).not.toContain('Unapplied changes');
+  });
+
+  it('requires at least one measurement and keeps the applied chart when all choices are cleared', async () => {
+    await selectTag('Temperature · °C');
+    expect(await (await button('Apply')).isDisabled()).toBe(true);
+    expect(history.query()?.tagIds).toEqual([1]);
+    http.expectNone((r) => r.url === '/api/telemetry/history');
+    await selectTag('Humidity · %');
+    expect(await (await button('Apply')).isDisabled()).toBe(false);
+    await (await button('Apply')).click();
+    const updated = request();
+    expect(updated.request.params.getAll('tag_ids')).toEqual(['2']);
+    updated.flush({ readings: [], next_cursor: null });
+  });
+
+  it('shows each measurement and its own units in the combined readings table', async () => {
+    await selectTag('Humidity · %');
+    await (await button('Apply')).click();
+    request().flush({
+      readings: [
+        {
+          id: 1,
+          tag_id: 1,
+          tag_key: 'temperature_c',
+          value: 25,
+          quality: 0,
+          observed_at: '2026-09-26T03:30:00Z',
+          ingested_at: '2026-09-26T03:30:01Z',
+        },
+        {
+          id: 2,
+          tag_id: 2,
+          tag_key: 'humidity_percent',
+          value: 60,
+          quality: 1,
+          observed_at: '2026-09-26T03:31:00Z',
+          ingested_at: '2026-09-26T03:31:01Z',
+        },
+      ],
+      next_cursor: null,
+    });
+    await (await loader.getHarness(MatButtonToggleHarness.with({ text: 'Readings' }))).check();
+    const table = fixture.nativeElement.querySelector('app-history-table').textContent;
+    expect(table).toContain('Temperature');
+    expect(table).toContain('Humidity');
+    expect(table).toContain('25.0');
+    expect(table).toContain('°C');
+    expect(table).toContain('60.0');
+    expect(table).toContain('%');
+    expect(table).toContain('Uncertain');
+    expect(fixture.nativeElement.querySelector('.summary-grid').textContent).not.toContain(
+      'MINIMUM',
+    );
   });
 });

@@ -6,7 +6,7 @@ import {
 } from '../telemetry/telemetry.models';
 
 export interface HistoryQuery {
-  tagId: number;
+  tagIds: number[];
   start: string;
   end: string;
 }
@@ -60,7 +60,7 @@ export function parseHistory(payload: unknown, query: HistoryQuery): HistoryPage
   if (
     readings.some(
       (row) =>
-        row.tag_id !== query.tagId ||
+        !query.tagIds.includes(row.tag_id) ||
         Date.parse(localTimestamp(row.observed_at)) < start ||
         Date.parse(localTimestamp(row.observed_at)) >= end,
     )

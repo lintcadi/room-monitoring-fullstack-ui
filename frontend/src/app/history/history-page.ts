@@ -45,15 +45,20 @@ export class HistoryPage implements OnInit, OnDestroy {
   private rangeDialog?: MatDialogRef<HistoryRange>;
   protected readonly preset = signal<number | 'custom'>(1);
   private readonly appliedPreset = signal<number | 'custom'>(1);
-  private readonly draftTagId = signal<number | null>(null);
+  private readonly draftTagIds = signal<number[] | null>(null);
   private readonly draftRange = signal<{ start: string; end: string } | null>(null);
-  protected readonly selectedTagId = computed(
-    () => this.draftTagId() ?? this.history.query()?.tagId,
+  protected readonly selectedTagIds = computed(
+    () => this.draftTagIds() ?? this.history.query()?.tagIds ?? [],
   );
   protected readonly pending = computed(() => {
     const query = this.history.query();
     if (!query) return false;
-    if (this.selectedTagId() !== query.tagId || this.preset() !== this.appliedPreset()) return true;
+    if (
+      this.selectedTagIds().length !== query.tagIds.length ||
+      this.selectedTagIds().some((id) => !query.tagIds.includes(id)) ||
+      this.preset() !== this.appliedPreset()
+    )
+      return true;
     const range = this.draftRange();
     return (
       this.preset() === 'custom' &&
@@ -61,6 +66,11 @@ export class HistoryPage implements OnInit, OnDestroy {
       (Date.parse(range.start) !== Date.parse(query.start) ||
         Date.parse(range.end) !== Date.parse(query.end))
     );
+  });
+  protected readonly multiple = computed(() => this.history.selectedTags().length > 1);
+  protected readonly selectionLabel = computed(() => {
+    const tags = this.history.tags().filter((tag) => this.selectedTagIds().includes(tag.id));
+    return tags.length === 1 ? tags[0].name : `${tags.length} measurements`;
   });
   protected readonly view = signal<'chart' | 'table'>('chart');
   protected readonly maxReadings = MAX_READINGS;
@@ -110,8 +120,8 @@ export class HistoryPage implements OnInit, OnDestroy {
     this.history.loadTags();
   }
 
-  protected changeTag(tagId: number): void {
-    this.draftTagId.set(tagId);
+  protected changeTags(tagIds: number[]): void {
+    this.draftTagIds.set(tagIds);
   }
 
   protected selectPreset(hours: number): void {
@@ -145,14 +155,15 @@ export class HistoryPage implements OnInit, OnDestroy {
   }
 
   protected apply(): void {
-    const tagId = this.selectedTagId();
-    if (tagId === undefined) return;
+    const tagIds = this.selectedTagIds();
+    if (!tagIds.length) return;
     const preset = this.preset();
     // Relative ranges start at the moment Apply is clicked, not when selected.
-    const range = preset === 'custom' ? this.draftRange() : recentRange(preset);
+    const range =
+      preset === 'custom' ? (this.draftRange() ?? this.history.query()) : recentRange(preset);
     if (!range) return;
     this.appliedPreset.set(preset);
-    this.history.load({ tagId, ...range });
+    this.history.load({ ...range, tagIds });
   }
 
   protected refresh(): void {
@@ -160,6 +171,6 @@ export class HistoryPage implements OnInit, OnDestroy {
     const preset = this.appliedPreset();
     if (!query) return;
     if (preset === 'custom') this.history.load(query);
-    else this.history.load({ tagId: query.tagId, ...recentRange(preset) });
+    else this.history.load({ tagIds: query.tagIds, ...recentRange(preset) });
   }
 }

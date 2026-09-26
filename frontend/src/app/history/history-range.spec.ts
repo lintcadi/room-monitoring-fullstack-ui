@@ -14,7 +14,7 @@ describe('Material history range dialog', () => {
     fixture = TestBed.createComponent(DialogHost);
     fixture.detectChanges();
     dialog = TestBed.inject(MatDialog).open(HistoryRange, {
-      data: { tagId: 1, start: '2026-09-25T00:00:00Z', end: '2026-09-25T01:00:00Z' },
+      data: { tagIds: [1], start: '2026-09-25T00:00:00Z', end: '2026-09-25T01:00:00Z' },
       enterAnimationDuration: 0,
       exitAnimationDuration: 0,
     });

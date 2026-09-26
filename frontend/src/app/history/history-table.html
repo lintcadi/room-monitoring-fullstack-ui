@@ -1,4 +1,9 @@
-<table mat-table [dataSource]="rows()" aria-label="Loaded history readings">
+<table
+  [class.multiple]="tags().length > 1"
+  mat-table
+  [dataSource]="rows()"
+  aria-label="Loaded history readings"
+>
   <ng-container matColumnDef="observed">
     <th mat-header-cell *matHeaderCellDef>Observed · Taipei</th>
     <td mat-cell *matCellDef="let row">
@@ -9,14 +14,18 @@
       >
     </td>
   </ng-container>
+  <ng-container matColumnDef="measurement">
+    <th mat-header-cell *matHeaderCellDef>Measurement</th>
+    <td mat-cell *matCellDef="let row">{{ tagMap().get(row.tag_id)?.name }}</td>
+  </ng-container>
   <ng-container matColumnDef="value">
     <th mat-header-cell *matHeaderCellDef>Value</th>
     <td
       mat-cell
       *matCellDef="let row"
-      [title]="'Raw value: ' + row.value + (tag().unit ? ' ' + tag().unit : '')"
+      [title]="'Raw value: ' + row.value + ' ' + (tagMap().get(row.tag_id)?.unit ?? '')"
     >
-      {{ value(row) }} <small>{{ unit() }}</small>
+      {{ value(row) }} <small>{{ unit(row) }}</small>
     </td>
   </ng-container>
   <ng-container matColumnDef="quality">
@@ -27,8 +36,8 @@
       }}</span>
     </td>
   </ng-container>
-  <tr mat-header-row *matHeaderRowDef="columns"></tr>
-  <tr mat-row *matRowDef="let row; columns: columns"></tr>
+  <tr mat-header-row *matHeaderRowDef="columns()"></tr>
+  <tr mat-row *matRowDef="let row; columns: columns()"></tr>
 </table>
 <mat-paginator
   [length]="readings().length"

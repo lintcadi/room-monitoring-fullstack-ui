@@ -37,10 +37,15 @@ function historyPaginatorLabels(): MatPaginatorIntl {
 })
 export class HistoryTable {
   readonly readings = input.required<TelemetryReading[]>();
-  readonly tag = input.required<TelemetryTag>();
+  readonly tags = input.required<TelemetryTag[]>();
+  protected readonly tagMap = computed(() => new Map(this.tags().map((tag) => [tag.id, tag])));
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
-  protected readonly columns = ['observed', 'value', 'quality'];
+  protected readonly columns = computed(() =>
+    this.tags().length > 1
+      ? ['observed', 'measurement', 'value', 'quality']
+      : ['observed', 'value', 'quality'],
+  );
   protected readonly page = signal(0);
   protected readonly pageSize = signal(5);
   protected readonly pages = computed(() => Math.ceil(this.readings().length / this.pageSize()));
@@ -48,9 +53,10 @@ export class HistoryTable {
   protected readonly rows = computed(() =>
     this.readings().slice(this.current() * this.pageSize(), (this.current() + 1) * this.pageSize()),
   );
-  protected readonly unit = computed(() => displayUnit({ ...this.tag(), reading: undefined }));
+  protected readonly unit = (row: TelemetryReading) =>
+    displayUnit({ ...this.tagMap().get(row.tag_id)!, reading: row });
   protected readonly value = (row: TelemetryReading) =>
-    displayValue({ ...this.tag(), reading: row });
+    displayValue({ ...this.tagMap().get(row.tag_id)!, reading: row });
   protected readonly observedTime = observedTime;
   protected readonly qualityLabel = qualityLabel;
   protected readonly qualityTone = qualityTone;

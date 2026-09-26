@@ -5,7 +5,7 @@ import { HistoryService } from './history.service';
 import { HistoryQuery } from './history.models';
 
 const query: HistoryQuery = {
-  tagId: 1,
+  tagIds: [1],
   start: '2026-09-25T08:00:00+08:00',
   end: '2026-09-25T09:00:00+08:00',
 };
@@ -68,7 +68,7 @@ describe('HistoryService', () => {
   it('cancels an old range request when the selection changes', () => {
     history.load(query);
     const old = nextRequest();
-    history.load({ ...query, tagId: 2 });
+    history.load({ ...query, tagIds: [2] });
     expect(old.cancelled).toBe(true);
     expect(history.readings()).toEqual([]);
     nextRequest().flush({ readings: [reading(2, 2)], next_cursor: null });
@@ -122,5 +122,25 @@ describe('HistoryService', () => {
     const request = nextRequest();
     TestBed.resetTestingModule();
     expect(request.cancelled).toBe(true);
+  });
+  it('uses repeated tag IDs on every page and validates all selected measurements', () => {
+    history.load({ ...query, tagIds: [1, 2] });
+    const first = nextRequest();
+    expect(first.request.params.getAll('tag_ids')).toEqual(['1', '2']);
+    first.flush({ readings: [reading(1), reading(2, 2)], next_cursor: 'next' });
+    expect(history.error()).toBe(false);
+    history.loadMore();
+    const next = nextRequest();
+    expect(next.request.params.getAll('tag_ids')).toEqual(['1', '2']);
+    expect(next.request.params.get('cursor')).toBe('next');
+    next.flush({ readings: [reading(3, 99)], next_cursor: null });
+    expect(history.error()).toBe(true);
+    expect(history.readings()).toHaveLength(2);
+    expect(history.nextCursor()).toBe('next');
+  });
+
+  it('does not send an unfiltered history request when no measurements are selected', () => {
+    history.load({ ...query, tagIds: [] });
+    http.expectNone((request) => request.url === '/api/telemetry/history');
   });
 });

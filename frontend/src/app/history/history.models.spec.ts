@@ -17,7 +17,7 @@ describe('history time ranges', () => {
   });
 
   it('validates the half-open range and rejects an invalid cursor contract', () => {
-    const query = { tagId: 1, start: '2026-09-25T21:00+08:00', end: '2026-09-25T22:00+08:00' };
+    const query = { tagIds: [1], start: '2026-09-25T21:00+08:00', end: '2026-09-25T22:00+08:00' };
     const row = {
       id: 1,
       tag_id: 1,

@@ -1,6 +1,7 @@
 <div class="chart-legend" aria-label="Telemetry quality legend">
-  <span class="good">● Good</span><span class="uncertain">◇ Uncertain</span
-  ><span class="bad">× Bad</span>
+  <span [class.good]="!multiple()">● Good</span
+  ><span [class.uncertain]="!multiple()">◇ Uncertain</span
+  ><span [class.bad]="!multiple()">× Bad</span>
   @if (hasUnknownQuality()) {
     <span>□ Unknown</span>
   }
@@ -19,8 +20,29 @@
     </div>
   }
 </div>
+@if (multiple()) {
+  <div class="measurement-legend" aria-label="Measurements">
+    @for (measurement of measurements(); track measurement.tag.id) {
+      <span
+        [title]="
+          measurement.rows.length
+            ? measurement.tag.name
+            : measurement.tag.name + ': no loaded readings'
+        "
+      >
+        <i [style.background]="measurement.color"></i>{{ measurement.tag.name }}
+        @if (!measurement.rows.length) {
+          <small>· no data</small>
+        }
+      </span>
+    }
+  </div>
+}
 <div class="window-caption">
   {{ visible().length }} / {{ ordered().length }} loaded readings in view
+  @if (relative()) {
+    <span> · Relative range: 0–100% of each measurement’s loaded min–max</span>
+  }
 </div>
 <div #canvas class="chart-canvas" (pointerleave)="hover.set(null)" (keydown)="inspectKey($event)">
   <apx-chart
@@ -30,8 +52,8 @@
     [yaxis]="options().yaxis"
     [stroke]="options().stroke"
     [tooltip]="options().tooltip"
-    [markers]="markers"
-    [colors]="colors"
+    [markers]="markers()"
+    [colors]="colors()"
     [dataLabels]="dataLabels"
     [legend]="legend"
     [grid]="grid"
@@ -63,13 +85,37 @@
       role="status"
       [class.on-left]="focus.x > focus.left + focus.width / 2"
     >
-      <time>{{ observedTime(focus.row.observed_at) }}</time>
-      <strong
-        >{{ hoverValue() }} <small>{{ hoverUnit() }}</small></strong
-      >
-      <span class="badge" [attr.data-tone]="qualityTone(focus.row.quality)"
-        >Data: {{ qualityLabel(focus.row.quality) }}</span
-      >
+      @if (multiple()) {
+        <span class="tooltip-heading">Nearest observations · individual timestamps</span>
+        <div class="tooltip-readings">
+          @for (item of hoverReadings(); track item.tag.id) {
+            <div class="tooltip-reading" [class.focused]="item.row?.id === focus.row.id">
+              <span class="tooltip-name"
+                ><i [style.background]="item.color"></i>{{ item.tag.name }}</span
+              >
+              @if (item.row; as row) {
+                <strong
+                  >{{ item.value }} <small>{{ item.unit }}</small></strong
+                >
+                <span class="badge" [attr.data-tone]="qualityTone(row.quality)"
+                  >Data: {{ qualityLabel(row.quality) }}</span
+                >
+                <time>{{ observedTime(row.observed_at) }}</time>
+              } @else {
+                <small>No loaded reading in view</small>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <time>{{ observedTime(focus.row.observed_at) }}</time>
+        <strong
+          >{{ hoverValue() }} <small>{{ hoverUnit() }}</small></strong
+        >
+        <span class="badge" [attr.data-tone]="qualityTone(focus.row.quality)"
+          >Data: {{ qualityLabel(focus.row.quality) }}</span
+        >
+      }
     </div>
   }
 </div>

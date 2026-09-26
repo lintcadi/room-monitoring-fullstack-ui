@@ -23,7 +23,10 @@ export class HistoryService {
   readonly limitReached = computed(
     () => this.nextCursor() !== null && this.readings().length >= MAX_READINGS,
   );
-  readonly tag = computed(() => this.tags().find((tag) => tag.id === this.query()?.tagId));
+  readonly selectedTags = computed(() =>
+    this.tags().filter((tag) => this.query()?.tagIds.includes(tag.id)),
+  );
+  readonly tag = computed(() => this.selectedTags().at(0));
 
   constructor() {
     this.destroyRef.onDestroy(() => this.request?.unsubscribe());
@@ -42,7 +45,7 @@ export class HistoryService {
           this.tagsLoading.set(false);
           if (tags.length && !this.query()) {
             const initial = tags.find((tag) => tag.tag_key === 'temperature_c') ?? tags[0];
-            this.load({ tagId: initial.id, ...recentRange(1) });
+            this.load({ tagIds: [initial.id], ...recentRange(1) });
           }
         },
         error: () => {
@@ -53,8 +56,9 @@ export class HistoryService {
   }
 
   load(query: HistoryQuery): void {
+    if (!query.tagIds.length) return;
     this.request?.unsubscribe();
-    this.query.set({ ...query });
+    this.query.set({ ...query, tagIds: [...new Set(query.tagIds)] });
     this.readings.set([]);
     this.nextCursor.set(null);
     this.loaded.set(false);
@@ -75,10 +79,10 @@ export class HistoryService {
     this.loading.set(true);
     this.error.set(false);
     let params = new HttpParams()
-      .set('tag_ids', query.tagId)
       .set('start', query.start)
       .set('end', query.end)
       .set('limit', Math.min(PAGE_SIZE, MAX_READINGS - this.readings().length));
+    for (const tagId of query.tagIds) params = params.append('tag_ids', tagId);
     if (cursor) params = params.set('cursor', cursor);
     this.request = this.http
       .get<unknown>('/api/telemetry/history', { params })

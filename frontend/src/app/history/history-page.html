@@ -21,8 +21,13 @@
     } @else if (history.query(); as query) {
       <div class="filters">
         <mat-form-field class="tag-picker" appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Measurement</mat-label>
-          <mat-select [value]="selectedTagId()" (selectionChange)="changeTag($event.value)">
+          <mat-label>Measurements</mat-label>
+          <mat-select
+            multiple
+            [value]="selectedTagIds()"
+            (selectionChange)="changeTags($event.value)"
+          >
+            <mat-select-trigger>{{ selectionLabel() }}</mat-select-trigger>
             @for (tag of history.tags(); track tag.id) {
               <mat-option [value]="tag.id"
                 >{{ tag.name }}{{ tag.unit ? ' · ' + tag.unit : '' }}</mat-option
@@ -52,7 +57,15 @@
           </button>
         </div>
         <div class="filter-actions">
-          <button mat-flat-button type="button" class="apply" (click)="apply()">Apply</button>
+          <button
+            mat-flat-button
+            type="button"
+            class="apply"
+            [disabled]="!selectedTagIds().length"
+            (click)="apply()"
+          >
+            Apply
+          </button>
           <button
             mat-stroked-button
             class="refresh"
@@ -74,12 +87,21 @@
         }
         <span class="range-zone">Taipei · end exclusive</span>
       </div>
-      <div class="summary-grid" aria-label="Loaded reading summary">
+      <div class="summary-grid" [class.comparison]="multiple()" aria-label="Loaded reading summary">
         <div>
           <span>LOADED READINGS</span
           ><strong>{{ history.readings().length | number }}<small> observations</small></strong>
         </div>
-        @if (isStatus()) {
+        @if (multiple()) {
+          <div>
+            <span>MEASUREMENTS</span
+            ><strong>{{ history.selectedTags().length }}<small> selected</small></strong>
+          </div>
+          <div>
+            <span>GOOD QUALITY</span
+            ><strong>{{ goodReadings().length | number }}<small> readings</small></strong>
+          </div>
+        } @else if (isStatus()) {
           <div>
             <span>STATES · GOOD QUALITY</span
             ><strong>{{ states() }}<small> distinct</small></strong>
@@ -112,7 +134,8 @@
         <div class="panel-heading">
           <div>
             <h2 id="chart-title">
-              {{ history.tag()?.name }}<span>{{ unit() }}</span>
+              {{ multiple() ? 'Comparison' : history.tag()?.name
+              }}<span>{{ multiple() ? '' : unit() }}</span>
             </h2>
             <span class="completion" [class.partial]="history.nextCursor()">{{
               completeness()
@@ -162,13 +185,13 @@
             </p>
           </div>
         } @else if (view() === 'chart') {
-          @if (history.tag(); as tag) {
-            <app-history-chart [readings]="history.readings()" [tag]="tag" [query]="query" />
-          }
+          <app-history-chart
+            [readings]="history.readings()"
+            [tags]="history.selectedTags()"
+            [query]="query"
+          />
         } @else {
-          @if (history.tag(); as tag) {
-            <app-history-table [readings]="history.readings()" [tag]="tag" />
-          }
+          <app-history-table [readings]="history.readings()" [tags]="history.selectedTags()" />
         }
         <div class="load-status" role="status">
           <span>

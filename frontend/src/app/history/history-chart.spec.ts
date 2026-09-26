@@ -18,7 +18,7 @@ vi.mock('apexcharts/client', () => ({
     zoomX() {}
   },
 }));
-const query = { tagId: 1, start: '2026-09-26T00:00:00Z', end: '2026-09-27T00:00:00Z' };
+const query = { tagIds: [1], start: '2026-09-26T00:00:00Z', end: '2026-09-27T00:00:00Z' };
 const tag = { id: 1, tag_key: 'temperature_c', name: 'Temperature', unit: '°C' };
 function rows(count: number): TelemetryReading[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -52,7 +52,7 @@ describe('ApexCharts history integration', () => {
     );
     fixture = TestBed.createComponent(HistoryChart);
     el = fixture.nativeElement;
-    fixture.componentRef.setInput('tag', tag);
+    fixture.componentRef.setInput('tags', [tag]);
     fixture.componentRef.setInput('query', query);
     setRows(rows(300));
   });
@@ -119,8 +119,66 @@ describe('ApexCharts history integration', () => {
     expect(el.querySelector('.window-caption')?.textContent).toContain('100 / 400');
   });
 
+  it('compares mixed units without merging timestamps, units, or quality', () => {
+    const humidity = { id: 2, tag_key: 'humidity_percent', name: 'Humidity', unit: '%' };
+    const temperature = rows(3).map((row, i) => ({
+      ...row,
+      value: 20 + i * 5,
+      quality: i === 1 ? 1 : 0,
+    }));
+    const humidRows = rows(2).map((row, i) => ({
+      ...row,
+      id: row.id + 10,
+      tag_id: 2,
+      tag_key: humidity.tag_key,
+      value: 40 + i * 20,
+      observed_at: new Date(readingTime(row) + 50).toISOString(),
+    }));
+    fixture.componentRef.setInput('tags', [tag, humidity]);
+    setRows([...temperature, ...humidRows]);
+    expect(options().series).toHaveLength(8);
+    expect(options().series[0].name).toBe('Temperature · Good');
+    expect(options().series[0].data).toEqual([
+      { x: readingTime(temperature[0]), y: 0 },
+      { x: readingTime(temperature[1]), y: null },
+      { x: readingTime(temperature[2]), y: 100 },
+    ]);
+    expect(options().series[1].data[1]).toEqual({ x: readingTime(temperature[1]), y: 50 });
+    expect(options().series[4].data[0]).toEqual({ x: readingTime(humidRows[0]), y: 0 });
+    expect(el.textContent).toContain('Relative range');
+    fixture.componentInstance['hover'].set({
+      row: temperature[1],
+      x: 100,
+      y: 100,
+      left: 0,
+      top: 0,
+      width: 300,
+      height: 200,
+    });
+    fixture.detectChanges();
+    const inspected = fixture.componentInstance['hoverReadings']();
+    expect(inspected[0].row).toEqual(temperature[1]);
+    expect(inspected[0].value).toBe('25.0');
+    expect(inspected[0].unit).toBe('°C');
+    expect(inspected[1].row).toEqual(humidRows[0]);
+    expect(inspected[1].unit).toBe('%');
+  });
+
+  it('keeps a shared raw scale for matching units and handles constant or missing series', () => {
+    const second = { ...tag, id: 2, name: 'Second temperature' };
+    fixture.componentRef.setInput('tags', [tag, second]);
+    setRows(rows(4));
+    expect(el.textContent).not.toContain('Relative range');
+    expect(options().series[1].data[1]).toEqual({ x: readingTime(rows(4)[1]), y: 1 });
+    expect(options().series[4].data).toEqual([]);
+    expect(el.textContent).toContain('no data');
+    fixture.componentRef.setInput('tags', [tag, { ...second, unit: '%' }]);
+    setRows(rows(4).map((row) => ({ ...row, value: 0 })));
+    expect(options().series[0].data[0]).toEqual({ x: readingTime(rows(4)[0]), y: 50 });
+  });
+
   it('uses step lines for statuses, Taipei labels, and a finite range for duplicate timestamps', () => {
-    fixture.componentRef.setInput('tag', { ...tag, tag_key: 'sensor_status' });
+    fixture.componentRef.setInput('tags', [{ ...tag, tag_key: 'sensor_status' }]);
     fixture.detectChanges();
     expect(options().stroke.curve).toBe('stepline');
     expect(options().xaxis.labels!.formatter!('', Date.parse(query.start), {} as never)).toBe(

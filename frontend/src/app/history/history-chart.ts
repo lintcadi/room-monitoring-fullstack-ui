@@ -38,6 +38,8 @@ import {
   queryRange,
   readingTime,
   nearestReadingIndex,
+  MEASUREMENT_COLORS,
+  measurementScale,
 } from './history-apex';
 
 @Component({
@@ -49,7 +51,31 @@ import {
 })
 export class HistoryChart {
   readonly readings = input.required<TelemetryReading[]>();
-  readonly tag = input.required<TelemetryTag>();
+  readonly tags = input.required<TelemetryTag[]>();
+  protected readonly multiple = computed(() => this.tags().length > 1);
+  protected readonly relative = computed(
+    () =>
+      this.multiple() &&
+      new Set(
+        this.tags().map((tag) =>
+          STATUS_KEYS.includes(tag.tag_key)
+            ? tag.tag_key
+            : displayUnit({ ...tag, reading: undefined }) || tag.tag_key,
+        ),
+      ).size > 1,
+  );
+  private readonly tagMap = computed(() => new Map(this.tags().map((tag) => [tag.id, tag])));
+  protected readonly measurements = computed(() =>
+    this.tags().map((tag, index) => {
+      const rows = this.ordered().filter((row) => row.tag_id === tag.id);
+      return {
+        tag,
+        rows,
+        color: MEASUREMENT_COLORS[index % MEASUREMENT_COLORS.length],
+        scale: measurementScale(rows, tag),
+      };
+    }),
+  );
   readonly query = input.required<HistoryQuery>();
   private readonly destroyRef = inject(DestroyRef);
   private readonly canvas = viewChild.required<ElementRef<HTMLDivElement>>('canvas');
@@ -67,11 +93,33 @@ export class HistoryChart {
     height: number;
   } | null>(null);
   protected readonly hoverValue = computed(() =>
-    displayValue({ ...this.tag(), reading: this.hover()?.row }),
+    displayValue({
+      ...this.tagMap().get(this.hover()?.row.tag_id ?? this.tags()[0].id)!,
+      reading: this.hover()?.row,
+    }),
   );
   protected readonly hoverUnit = computed(() =>
-    displayUnit({ ...this.tag(), reading: this.hover()?.row }),
+    displayUnit({
+      ...this.tagMap().get(this.hover()?.row.tag_id ?? this.tags()[0].id)!,
+      reading: this.hover()?.row,
+    }),
   );
+  protected readonly hoverReadings = computed(() => {
+    const focus = this.hover();
+    if (!focus) return [];
+    const time = readingTime(focus.row);
+    return this.measurements().map(({ tag, rows, color }) => {
+      const index = nearestReadingIndex(rows, time, this.range());
+      const row = index < 0 ? undefined : rows[index];
+      return {
+        tag,
+        row,
+        color,
+        value: displayValue({ ...tag, reading: row }),
+        unit: displayUnit({ ...tag, reading: row }),
+      };
+    });
+  });
   protected readonly observedTime = observedTime;
   protected readonly qualityLabel = qualityLabel;
   protected readonly qualityTone = qualityTone;
@@ -93,7 +141,11 @@ export class HistoryChart {
   protected readonly hasUnknownQuality = computed(() =>
     this.ordered().some((row) => ![0, 1, 2].includes(row.quality)),
   );
-  protected readonly colors = ['#267653', '#92712f', '#a74c3d', '#69776e'];
+  protected readonly colors = computed(() =>
+    this.multiple()
+      ? this.measurements().flatMap(({ color }) => [color, color, color, color])
+      : ['#267653', '#92712f', '#a74c3d', '#69776e'],
+  );
   protected readonly dataLabels = { enabled: false };
   protected readonly legend = { show: false };
   protected readonly grid = {
@@ -101,13 +153,13 @@ export class HistoryChart {
     strokeDashArray: 4,
     padding: { left: 0, right: 12, top: 0, bottom: 0 },
   };
-  protected readonly markers: ApexMarkers = {
-    size: [5, 6, 6, 6],
-    shape: ['circle', 'diamond', 'cross', 'square'],
+  protected readonly markers = computed<ApexMarkers>(() => ({
+    size: this.tags().flatMap(() => [5, 6, 6, 6]),
+    shape: this.tags().flatMap(() => ['circle', 'diamond', 'cross', 'square'] as const),
     strokeWidth: 1,
     hover: { sizeOffset: 3 },
     showNullDataPoints: false,
-  };
+  }));
   private recordRange(range: ChartRange): void {
     this.viewport.set(range);
     this.hover.set(null);
@@ -117,7 +169,8 @@ export class HistoryChart {
   // not these inputs, so Angular doesn't recreate the chart during an interaction.
   protected readonly options = computed(() => {
     const rows = this.ordered();
-    const tag = this.tag();
+    const tags = this.tags();
+    const relative = this.relative();
     const query = this.query();
     const size = this.size();
     const bounds = queryRange(query);
@@ -156,7 +209,6 @@ export class HistoryChart {
       },
       events: {
         mouseMove: (event) => this.inspect(event),
-        mouseLeave: () => this.hover.set(null),
         zoomed: (_ctx, options) => {
           if (options) this.recordRange(options.xaxis);
         },
@@ -166,7 +218,7 @@ export class HistoryChart {
       },
       accessibility: {
         enabled: true,
-        description: `${tag.name} by observation time. Data quality is shown separately.`,
+        description: `${tags.map((tag) => tag.name).join(', ')} by observation time. Data quality is shown separately.`,
         keyboard: { enabled: true },
       },
     };
@@ -196,13 +248,13 @@ export class HistoryChart {
       axisTicks: { show: false },
     };
     // One shared scale includes every quality series. Keep it stable while panning.
-    const values = rows.map((row) => plotValue(tag, row.value));
+    const values = rows.map((row) => plotValue(this.tagMap().get(row.tag_id)!, row.value));
     const min = Math.min(...values),
       max = Math.max(...values);
     const padding = min === max ? Math.max(1, Math.abs(min) * 0.01) : (max - min) * 0.08;
     const yaxis: ApexYAxis = {
-      min: Number.isFinite(min) ? min - padding : 0,
-      max: Number.isFinite(max) ? max + padding : 1,
+      min: relative ? 0 : Number.isFinite(min) ? min - padding : 0,
+      max: relative ? 100 : Number.isFinite(max) ? max + padding : 1,
       tickAmount: size.height < 180 ? 2 : 4,
       forceNiceScale: false,
       labels: {
@@ -213,17 +265,30 @@ export class HistoryChart {
           new Intl.NumberFormat('en-US', {
             maximumFractionDigits: 2,
             notation: Math.abs(value) >= 100000 ? 'compact' : 'standard',
-          }).format(value),
+          }).format(value) + (relative ? '%' : ''),
       },
     };
     const stroke: ApexStroke = {
-      width: [1.8, 0, 0, 0],
-      curve: STATUS_KEYS.includes(tag.tag_key) ? 'stepline' : 'straight',
+      width: tags.flatMap(() => [1.8, 0, 0, 0]),
+      curve:
+        tags.length === 1
+          ? STATUS_KEYS.includes(tags[0].tag_key)
+            ? 'stepline'
+            : 'straight'
+          : tags.flatMap((tag) =>
+              Array(4).fill(STATUS_KEYS.includes(tag.tag_key) ? 'stepline' : 'straight'),
+            ),
     };
     // App tooltip selects by time only; Apex's sparse quality-series hit testing
     // can choose a different timestamp depending on the pointer's vertical position.
     const tooltip: ApexTooltip = { enabled: false };
-    return { chart, series: qualitySeries(rows, tag), xaxis, yaxis, stroke, tooltip };
+    const series = this.measurements().flatMap(({ tag, rows, scale }) =>
+      qualitySeries(rows, tag, relative ? scale.normalize : undefined).map((series) => ({
+        ...series,
+        name: this.multiple() ? `${tag.name} · ${series.name}` : series.name,
+      })),
+    );
+    return { chart, series, xaxis, yaxis, stroke, tooltip };
   });
 
   constructor() {
@@ -285,16 +350,16 @@ export class HistoryChart {
     const axis = this.options().yaxis;
     const min = axis.min as number,
       max = axis.max as number;
+    const measurement = this.measurements().find(({ tag }) => tag.id === row.tag_id)!;
+    const value = plotValue(measurement.tag, row.value);
+    const plotted = this.relative() ? measurement.scale.normalize(value) : value;
     this.hover.set({
       row,
       x:
         grid.left -
         box.left +
         ((readingTime(row) - range.min) / (range.max - range.min)) * grid.width,
-      y:
-        grid.top -
-        box.top +
-        (1 - (plotValue(this.tag(), row.value) - min) / (max - min)) * grid.height,
+      y: grid.top - box.top + (1 - (plotted - min) / (max - min)) * grid.height,
       left: grid.left - box.left,
       top: grid.top - box.top,
       width: grid.width,

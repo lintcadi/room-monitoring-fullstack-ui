@@ -51,16 +51,50 @@ export function initialRange(rows: TelemetryReading[], query: HistoryQuery): Cha
   return { min, max: Math.max(min + 1, readingTime(rows[99])) };
 }
 
-// Same indices in every series let Apex event indices map back to the original reading.
+// Keep timestamps aligned across the four quality series for each measurement.
 // Nulls explicitly break the good line; non-good data is rendered as markers only.
-export function qualitySeries(rows: TelemetryReading[], tag: TelemetryTag): ApexAxisChartSeries {
+export function qualitySeries(
+  rows: TelemetryReading[],
+  tag: TelemetryTag,
+  transform = (value: number) => value,
+): ApexAxisChartSeries {
   return ['Good', 'Uncertain', 'Bad', 'Unknown'].map((name, quality) => ({
     name,
     data: rows.map((row) => ({
       x: readingTime(row),
       y: (quality === 3 ? ![0, 1, 2].includes(row.quality) : row.quality === quality)
-        ? plotValue(tag, row.value)
+        ? transform(plotValue(tag, row.value))
         : null,
     })),
   }));
+}
+
+// Distinct series colors identify measurements; marker shapes still identify quality.
+export const MEASUREMENT_COLORS = [
+  '#267653',
+  '#3c69b0',
+  '#a85726',
+  '#8759a1',
+  '#237d8b',
+  '#b04b76',
+  '#716d26',
+  '#5468aa',
+  '#9c5f51',
+  '#397c6f',
+  '#785bb8',
+  '#976529',
+  '#537caa',
+  '#86547a',
+];
+
+export function measurementScale(rows: TelemetryReading[], tag: TelemetryTag) {
+  const values = rows.map((row) => plotValue(tag, row.value));
+  const min = values.length ? Math.min(...values) : 0;
+  const max = values.length ? Math.max(...values) : 0;
+  return {
+    min,
+    max,
+    // Constant series sit halfway up the comparison plot; no variation is invented.
+    normalize: (value: number) => (max === min ? 50 : ((value - min) / (max - min)) * 100),
+  };
 }

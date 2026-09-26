@@ -148,16 +148,18 @@ data quality; the range definitions are shown in Live reading details.
 
 ## History
 
-Select the **History** tab or go directly to `/history`. Select any tag and
-choose the last 1, 6, or 24 hours, or enter a custom range. Custom date inputs and
+Select the **History** tab or go directly to `/history`. Select one or more
+measurements and choose the last 1, 6, or 24 hours, or enter a custom range. Custom date inputs and
 all displayed timestamps use Asia/Taipei, regardless of the browser's timezone.
-The start is inclusive and the end is exclusive. Changes to the tag or range stay
-pending until you click **Apply**. In the custom-range dialog, **Use range** saves
+The start is inclusive and the end is exclusive. Changes to the measurements or
+range stay pending until you click **Apply**. In the custom-range dialog, **Use range** saves
 the pending dates; it does not fetch data. The page initially loads the default
 one-hour range automatically.
 
-- Fetch one tag at a time from `GET /api/telemetry/history`, initially up to 1,000
-  readings. **Load more** passes the returned cursor with the same tag and range.
+- Fetch the selected tags together from `GET /api/telemetry/history` using repeated
+  `tag_ids` parameters, initially up to 1,000 readings total. **Load more** passes
+  the returned cursor with the same tag IDs and range. At least one measurement
+  must be selected to apply filters. The 5,000-reading limit is shared across all selections.
 - **Fit all** spans the requested interval. **Partial range** means more
   pages remain; summary values describe only the loaded readings. At 5,000
   readings, choose a narrower range to keep browser rendering bounded.
@@ -191,15 +193,25 @@ switches to rectangle zoom. The percentage button resets to the first 100 readin
 based on the number of visible readings, so it varies with irregular sampling.
 Readings with identical timestamps stay together, including at the 100-reading boundary.
 
-The horizontal axis uses actual timestamps formatted in Asia/Taipei. The shared
-vertical axis covers all loaded values, including non-good quality, and stays
-stable during pan/zoom. Each quality has its own series: good data is connected
-with gaps at non-good readings; other qualities use markers without connecting
+The horizontal axis uses actual timestamps formatted in Asia/Taipei. For a single
+measurement or measurements with matching units, the vertical axis uses actual values. Comparisons with different units or different status definitions
+use a clearly labeled relative scale: 0% is each measurement’s loaded minimum and
+100% its loaded maximum; constant series sit at 50%. These percentages describe
+variation, not quality, health, or a percentage change. Scales include all qualities
+and stay stable during pan/zoom; loading another page can extend them. Each quality
+has its own series: good data is connected with gaps at non-good readings; other qualities use markers without connecting
 lines. Status tags use steps. Move horizontally anywhere inside the plot to inspect
 the nearest timestamp; pointer height does not affect selection. A vertical dashed
 guide marks the selected time, a horizontal guide marks its value, and one tooltip
-shows the reading’s value, unit and data quality. You can also focus
-the chart and use native arrow-key navigation (+/− zoom, Shift+←/→ pan).
+shows actual values, units and data quality. In comparisons, it finds the nearest
+loaded observation for each measurement inside the visible time window and shows
+each timestamp separately; it does not interpolate or assume synchronized updates.
+Colors identify measurements and marker shapes identify quality. The measurement
+legend scrolls horizontally if needed, and longer comparison tooltips scroll
+within the plot. The Readings table includes a measurement column; comparison
+summaries show counts instead of combining minima and maxima across units.
+On short screens, these comparison summary cards are hidden to give the plot more
+room. You can also focus the chart and use native arrow-key navigation (+/− zoom, Shift+←/→ pan).
 
 Zoom and pan make no backend requests. **Load more** extends the available data
 without moving the current time window. Applying filters or refreshing resets the

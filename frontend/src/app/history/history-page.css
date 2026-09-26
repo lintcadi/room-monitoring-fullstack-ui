@@ -13,6 +13,7 @@
 }
 main {
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: clamp(10px, 1.6vh, 18px);
@@ -142,6 +143,7 @@ h1 > span {
 .history-panel {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -420,4 +422,10 @@ footer {
 
 .tag-picker {
   width: 100%;
+}
+
+@media (max-height: 680px) {
+  .summary-grid.comparison {
+    display: none;
+  }
 }
