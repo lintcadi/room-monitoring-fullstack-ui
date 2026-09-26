@@ -43,7 +43,7 @@ import { HistoryQuery, customRange, taipeiInput } from './history.models';
       </mat-dialog-content>
       <mat-dialog-actions align="end">
         <button mat-button type="button" mat-dialog-close>Cancel</button>
-        <button mat-flat-button type="submit">Apply range</button>
+        <button mat-flat-button type="submit">Use range</button>
       </mat-dialog-actions>
     </form>
   `,

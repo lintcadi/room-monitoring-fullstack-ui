@@ -44,6 +44,24 @@ export class HistoryPage implements OnInit, OnDestroy {
   private readonly dialog = inject(MatDialog);
   private rangeDialog?: MatDialogRef<HistoryRange>;
   protected readonly preset = signal<number | 'custom'>(1);
+  private readonly appliedPreset = signal<number | 'custom'>(1);
+  private readonly draftTagId = signal<number | null>(null);
+  private readonly draftRange = signal<{ start: string; end: string } | null>(null);
+  protected readonly selectedTagId = computed(
+    () => this.draftTagId() ?? this.history.query()?.tagId,
+  );
+  protected readonly pending = computed(() => {
+    const query = this.history.query();
+    if (!query) return false;
+    if (this.selectedTagId() !== query.tagId || this.preset() !== this.appliedPreset()) return true;
+    const range = this.draftRange();
+    return (
+      this.preset() === 'custom' &&
+      range !== null &&
+      (Date.parse(range.start) !== Date.parse(query.start) ||
+        Date.parse(range.end) !== Date.parse(query.end))
+    );
+  });
   protected readonly view = signal<'chart' | 'table'>('chart');
   protected readonly maxReadings = MAX_READINGS;
   protected readonly unit = computed(() => {
@@ -93,24 +111,20 @@ export class HistoryPage implements OnInit, OnDestroy {
   }
 
   protected changeTag(tagId: number): void {
-    const query = this.history.query();
-    if (query) {
-      this.history.load({ ...query, tagId });
-    }
+    this.draftTagId.set(tagId);
   }
 
   protected selectPreset(hours: number): void {
-    const query = this.history.query();
-    if (!query) return;
     this.preset.set(hours);
-    this.history.load({ tagId: query.tagId, ...recentRange(hours) });
   }
 
   protected openRange(): void {
     const query = this.history.query();
     if (!query) return;
+    const preset = this.preset();
+    const range = preset === 'custom' ? (this.draftRange() ?? query) : recentRange(preset);
     this.rangeDialog = this.dialog.open(HistoryRange, {
-      data: query,
+      data: { ...query, ...range },
       width: '420px',
       maxWidth: 'calc(100vw - 24px)',
     });
@@ -126,17 +140,26 @@ export class HistoryPage implements OnInit, OnDestroy {
   }
 
   protected custom(range: { start: string; end: string }): void {
-    const query = this.history.query();
-    if (!query) return;
     this.preset.set('custom');
-    this.history.load({ tagId: query.tagId, ...range });
+    this.draftRange.set(range);
+  }
+
+  protected apply(): void {
+    const tagId = this.selectedTagId();
+    if (tagId === undefined) return;
+    const preset = this.preset();
+    // Relative ranges start at the moment Apply is clicked, not when selected.
+    const range = preset === 'custom' ? this.draftRange() : recentRange(preset);
+    if (!range) return;
+    this.appliedPreset.set(preset);
+    this.history.load({ tagId, ...range });
   }
 
   protected refresh(): void {
     const query = this.history.query();
-    const preset = this.preset();
+    const preset = this.appliedPreset();
     if (!query) return;
     if (preset === 'custom') this.history.load(query);
-    else this.selectPreset(preset);
+    else this.history.load({ tagId: query.tagId, ...recentRange(preset) });
   }
 }

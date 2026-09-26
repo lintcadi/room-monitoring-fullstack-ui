@@ -103,7 +103,10 @@ keyboard focus. The live page makes no historical requests.
 Select the **History** tab or go directly to `/history`. Select any tag and
 choose the last 1, 6, or 24 hours, or enter a custom range. Custom date inputs and
 all displayed timestamps use Asia/Taipei, regardless of the browser's timezone.
-The start is inclusive and the end is exclusive.
+The start is inclusive and the end is exclusive. Changes to the tag or range stay
+pending until you click **Apply**. In the custom-range dialog, **Use range** saves
+the pending dates; it does not fetch data. The page initially loads the default
+one-hour range automatically.
 
 - Fetch one tag at a time from `GET /api/telemetry/history`, initially up to 1,000
   readings. **Load more** passes the returned cursor with the same tag and range.
@@ -117,12 +120,13 @@ The start is inclusive and the end is exclusive.
   **Readings** view pages through the already loaded data; its arrows do not
   fetch additional history. Values use the same units and precision as Live;
   the value tooltip includes the raw number and original unit.
-- **Refresh** reruns the query to include late arrivals. Preset ranges advance
+- **Refresh** reruns the applied query to include late arrivals, leaving any
+  pending filter edits untouched. **Load more** also uses the applied filters. Preset ranges advance
   to the current time; custom ranges remain fixed. History does not poll or open
   an SSE connection. Switching away from Live closes its stream, and returning
   opens a fresh one.
 - Failed requests show a retry action. A failed additional page preserves the
-  data already loaded. Changing the tag/range or leaving the page cancels any
+  data already loaded. Applying filters or leaving the page cancels any
   outstanding history request.
 
 Live and History use viewport-fitting layouts, with a denser layout on small screens.

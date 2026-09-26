@@ -23,7 +23,7 @@
       <div class="filters">
         <mat-form-field class="tag-picker" appearance="outline" subscriptSizing="dynamic">
           <mat-label>Measurement</mat-label>
-          <mat-select [value]="query.tagId" (selectionChange)="changeTag($event.value)">
+          <mat-select [value]="selectedTagId()" (selectionChange)="changeTag($event.value)">
             @for (tag of history.tags(); track tag.id) {
               <mat-option [value]="tag.id"
                 >{{ tag.name }}{{ tag.unit ? ' · ' + tag.unit : '' }}</mat-option
@@ -52,20 +52,28 @@
             Custom
           </button>
         </div>
-        <button
-          mat-stroked-button
-          class="refresh"
-          type="button"
-          (click)="refresh()"
-          aria-label="Refresh history"
-        >
-          <span aria-hidden="true">↻</span><span class="refresh-label">Refresh</span>
-        </button>
+        <div class="filter-actions">
+          <button mat-flat-button type="button" class="apply" (click)="apply()">Apply</button>
+          <button
+            mat-stroked-button
+            class="refresh"
+            type="button"
+            (click)="refresh()"
+            aria-label="Refresh history"
+            title="Refresh the applied filters"
+          >
+            <span aria-hidden="true">↻</span><span class="refresh-label">Refresh</span>
+          </button>
+        </div>
       </div>
       <div class="range-caption">
+        <span>Showing</span>
         <time>{{ observedTime(query.start) }}</time
-        ><span aria-hidden="true">→</span><time>{{ observedTime(query.end) }}</time
-        ><span class="range-zone">Taipei · end exclusive</span>
+        ><span aria-hidden="true">→</span><time>{{ observedTime(query.end) }}</time>
+        @if (pending()) {
+          <span class="pending-filters" role="status">Unapplied changes</span>
+        }
+        <span class="range-zone">Taipei · end exclusive</span>
       </div>
       <div class="summary-grid" aria-label="Loaded reading summary">
         <div>

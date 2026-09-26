@@ -73,9 +73,20 @@ h1 > span {
   align-items: center;
   gap: 8px;
   min-height: 40px;
-  margin-left: auto;
   font-size: 0.75rem;
   border-color: var(--line);
+}
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.apply {
+  min-height: 40px;
+}
+.pending-filters {
+  color: #7a5715;
 }
 .refresh > span:first-child {
   font-size: 1.15rem;
@@ -276,6 +287,16 @@ footer {
   .refresh {
     padding: 6px 12px;
     min-height: 34px;
+    min-width: 36px;
+    width: 36px;
+  }
+  .filter-actions {
+    gap: 6px;
+  }
+  .apply {
+    min-height: 34px;
+    min-width: 56px;
+    padding-inline: 10px;
   }
   .refresh-label {
     display: none;
