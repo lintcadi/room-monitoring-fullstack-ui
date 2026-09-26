@@ -21,6 +21,7 @@ import { MatTabsModule, MatTabNavPanel } from '@angular/material/tabs';
           #active="routerLinkActive"
           [routerLinkActiveOptions]="{ exact: true }"
           [active]="active.isActive"
+          [disabled]="tab.disabled"
           >{{ tab.label }}</a
         >
       }
@@ -40,8 +41,8 @@ import { MatTabsModule, MatTabNavPanel } from '@angular/material/tabs';
 export class DashboardTabs {
   readonly tabPanel = input.required<MatTabNavPanel>();
   protected readonly tabs = [
-    { path: '/', label: 'Live' },
-    { path: '/history', label: 'History' },
-    { path: '/cctv', label: 'CCTV' },
+    { path: '/', label: 'Live', disabled: false },
+    { path: '/history', label: 'History', disabled: false },
+    { path: '/cctv', label: 'CCTV', disabled: true },
   ];
 }
