@@ -1,12 +1,16 @@
+"""Application assembly and shared resource lifecycle."""
+
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from backend import health
 from backend.config import settings
-from backend.routers import health, telemetry
 from backend.database import connect_db, disconnect_db
-from backend.telemetry_stream import TelemetryStream
+from backend.telemetry import router as telemetry
+from backend.telemetry.stream import TelemetryStream
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -22,6 +26,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     finally:
         await disconnect_db()
 
+
 app = FastAPI(
     title=settings.app_name,
     lifespan=lifespan,
@@ -33,5 +38,5 @@ app.include_router(
 )
 app.include_router(
     telemetry.router,
-    prefix="/api"
+    prefix="/api",
 )

@@ -1,24 +1,7 @@
-"""Telemetry reading models and reusable PostgreSQL queries."""
-
-from datetime import datetime
-
-from pydantic import BaseModel
+"""Read the latest PostgreSQL observation for each selected tag."""
 
 from backend.database import pool
-
-
-class TelemetryValue(BaseModel):
-    id: int
-    tag_id: int
-    tag_key: str
-    value: float
-    quality: int
-    observed_at: datetime
-    ingested_at: datetime
-
-
-class LatestTelemetryResponse(BaseModel):
-    readings: list[TelemetryValue]
+from backend.telemetry.schemas import LatestTelemetryResponse, TelemetryValue
 
 
 async def fetch_latest_telemetry(

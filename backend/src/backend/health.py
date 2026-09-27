@@ -1,12 +1,18 @@
+"""HTTP health check for the application and its PostgreSQL connection."""
+
 from fastapi import APIRouter, HTTPException, status
 from psycopg import OperationalError
 from pydantic import BaseModel
+
 from backend.database import pool
+
 router = APIRouter()
+
 
 class HealthResponse(BaseModel):
     status: str
     database: str
+
 
 @router.get("/health", response_model=HealthResponse)
 async def get_health() -> HealthResponse:

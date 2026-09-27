@@ -18,9 +18,10 @@ with patch.dict(os.environ, {
     "POSTGRES_USER": "test",
     "POSTGRES_PASSWORD": "test",
 }):
-    from backend import main, telemetry_stream
-    from backend.routers import telemetry as router
-    from backend.telemetry import LatestTelemetryResponse, TelemetryValue
+    from backend import main
+    from backend.telemetry import stream as telemetry_stream
+    from backend.telemetry import router
+    from backend.telemetry.schemas import LatestTelemetryResponse, TelemetryValue
 
 
 def reading(reading_id, tag_id=1):

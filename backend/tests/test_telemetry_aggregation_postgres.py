@@ -16,7 +16,7 @@ with patch.dict(os.environ, {
     'POSTGRES_HOST': 'postgres.test', 'POSTGRES_PORT': '5432', 'POSTGRES_DB': 'test',
     'POSTGRES_USER': 'test', 'POSTGRES_PASSWORD': 'test', 'TIMEZONE': 'Asia/Taipei',
 }):
-    from backend.telemetry_history import read_history
+    from backend.telemetry.history import read_history
 
 
 @unittest.skipUnless(os.environ.get('HISTORY_TEST_DATABASE') == '1', 'Opt-in PostgreSQL integration')

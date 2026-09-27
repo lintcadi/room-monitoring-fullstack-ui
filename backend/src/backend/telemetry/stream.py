@@ -9,7 +9,8 @@ from fastapi.sse import ServerSentEvent
 from psycopg import OperationalError
 from psycopg_pool import PoolTimeout
 
-from backend.telemetry import LatestTelemetryResponse, TelemetryValue, fetch_latest_telemetry
+from backend.telemetry.latest import fetch_latest_telemetry
+from backend.telemetry.schemas import LatestTelemetryResponse, TelemetryValue
 
 logger = logging.getLogger(__name__)
 

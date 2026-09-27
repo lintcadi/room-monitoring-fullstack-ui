@@ -45,9 +45,42 @@ uv run uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000 --timeout-gr
 ```
 
 The PostgreSQL address in `.env` must be reachable from whichever process runs
-Python. `/latest` and `/history` query the database directly. The shared models
-and latest-reading query live in `src/backend/telemetry.py`; HTTP routes live in
-`src/backend/routers/telemetry.py`.
+Python. `/latest` and `/history` query the database directly.
+
+## Code structure
+
+The backend groups telemetry code by feature. Application setup and shared
+infrastructure stay at the package root:
+
+```text
+src/backend/
+├── main.py                 # FastAPI assembly and startup/shutdown
+├── config.py               # Environment-backed settings
+├── database.py             # Shared PostgreSQL connection pool
+├── health.py               # /api/health
+└── telemetry/
+    ├── router.py           # HTTP parameters, endpoints, and error responses
+    ├── schemas.py          # Pydantic response models and aggregation types
+    ├── tags.py             # Tag metadata queries
+    ├── latest.py           # Latest observation per tag
+    ├── history.py          # Raw and aggregated history queries, calendar boundaries
+    ├── pagination.py       # Query-scoped cursor encoding and validation
+    ├── errors.py           # Errors shared by telemetry queries and routes
+    └── stream.py           # Shared polling task and SSE snapshots/updates
+tests/
+```
+
+HTTP handlers delegate to the query modules. Tag queries return `None` when a
+single tag is missing; the router converts that to HTTP 404. History validation
+raises `InvalidHistoryQuery`, which the router converts to HTTP 400. Database
+failures propagate instead of being represented as empty data. Query modules
+can be reused without invoking an HTTP handler, and schemas can be imported
+without loading database settings.
+
+`main.py` connects the pool, starts the shared stream, registers routes, and
+stops the stream before closing the pool. The startup target remains
+`backend.main:app`. Tests cover endpoints, lifecycle, streaming, pagination,
+and optional PostgreSQL aggregation integration.
 
 ## History aggregation
 
@@ -96,7 +129,8 @@ changing any of those requires a new query without a cursor. Cursors created
 before this change must also be discarded. Refresh to include late arrivals or
 changes to previously returned buckets; pagination is not a frozen database snapshot.
 
-History contracts and queries live in `src/backend/telemetry_history.py`.
+History contracts live in `src/backend/telemetry/schemas.py`; queries live in
+`src/backend/telemetry/history.py`, with cursors in `pagination.py`.
 The route remains `/api/telemetry/history`.
 
 ## Live telemetry

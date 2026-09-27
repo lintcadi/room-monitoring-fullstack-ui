@@ -1,3 +1,5 @@
+"""Shared PostgreSQL pool, opened and closed by the application lifespan."""
+
 from psycopg_pool import AsyncConnectionPool
 
 from backend.config import settings
@@ -16,8 +18,10 @@ pool = AsyncConnectionPool(
     open=False,
 )
 
-async def connect_db():
+
+async def connect_db() -> None:
     await pool.open(wait=True)
 
-async def disconnect_db():
+
+async def disconnect_db() -> None:
     await pool.close()

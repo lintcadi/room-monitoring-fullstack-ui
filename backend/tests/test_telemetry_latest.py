@@ -14,14 +14,15 @@ with patch.dict(os.environ, {
     "POSTGRES_USER": "test",
     "POSTGRES_PASSWORD": "test",
 }):
-    from backend import telemetry
-    from backend.routers import telemetry as router
+    from backend.telemetry.schemas import TelemetryValue
+    from backend.telemetry import latest as telemetry
+    from backend.telemetry import router
 
 
 class LatestTelemetryTests(unittest.IsolatedAsyncioTestCase):
     async def test_latest_endpoint_preserves_filters_and_reading_response(self):
         observed = datetime(2026, 9, 25, 10, tzinfo=ZoneInfo("Asia/Taipei"))
-        reading = telemetry.TelemetryValue(
+        reading = TelemetryValue(
             id=10, tag_id=1, tag_key="tag-1", value=24.6, quality=192,
             observed_at=observed, ingested_at=observed,
         )

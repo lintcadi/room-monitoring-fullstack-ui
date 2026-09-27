@@ -18,7 +18,7 @@ with patch.dict(os.environ, {
     "POSTGRES_PASSWORD": "test",
     "TIMEZONE": "Asia/Taipei",
 }):
-    from backend.routers import telemetry
+    from backend.telemetry import router as telemetry
 
 
 START = "2026-09-25T00:00:00Z"

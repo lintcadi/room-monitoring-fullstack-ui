@@ -14,7 +14,7 @@ with patch.dict(os.environ, {
     "POSTGRES_PASSWORD": "test",
 }):
     from backend import main
-    from backend.routers import health
+    from backend import health
 
 
 class AppTests(unittest.IsolatedAsyncioTestCase):

@@ -1,3 +1,5 @@
+"""Environment-backed application settings."""
+
 from zoneinfo import ZoneInfo
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,5 +23,6 @@ class Settings(BaseSettings):
     @property
     def timezone_info(self) -> ZoneInfo:
         return ZoneInfo(self.timezone)
+
 
 settings = Settings()
