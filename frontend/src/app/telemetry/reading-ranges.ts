@@ -6,6 +6,7 @@ const GOOD = { color: '#237443', background: '#edf5ee' };
 const CAUTION = { color: '#8a6b00', background: '#fff8df' };
 const HIGH = { color: '#b45309', background: '#fff3e6' };
 const COOL = { color: '#376c8a', background: '#edf3f7' };
+const DANGER = { color: '#b42318', background: '#fff0ee' };
 const BOSCH = {
   label: 'Bosch BME680 datasheet',
   url: 'https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme680-ds001.pdf',
@@ -41,8 +42,6 @@ const band = (range: string, label: string, matches: Band['matches'], style = NE
   ...style,
 });
 
-// Inclusive app comfort target, not a health/safety limit or a Bosch specification.
-export const TEMPERATURE_TARGET = { min: 20, max: 26 } as const;
 const completion: RangeDefinition = {
   title: 'Sensor readiness',
   note: 'Readiness is separate from telemetry quality and air quality. Only 0 and 1 are defined.',
@@ -66,28 +65,15 @@ export const READING_RANGES: Readonly<Partial<Record<string, RangeDefinition>>> 
     })),
   },
   temperature_c: {
-    title: 'Room comfort target',
-    note: `${TEMPERATURE_TARGET.min}–${TEMPERATURE_TARGET.max}°C is this app’s adjustable comfort default, not a health limit. Comfort also depends on clothing, activity and airflow. Sensor operating range: −40–85°C.`,
-    source: BOSCH,
+    title: 'Room temperature',
+    note: 'App-defined room temperature bands. Boundaries use the unrounded reading: 12, 18, 25 and 35°C start the next band. Sensor operating range: −40–85°C.',
+    source: { ...BOSCH, label: 'Bosch BME680 sensor operating range' },
     bands: [
-      band(
-        `−40 to <${TEMPERATURE_TARGET.min}°C`,
-        'Cool',
-        (v) => v >= -40 && v < TEMPERATURE_TARGET.min,
-        COOL,
-      ),
-      band(
-        `${TEMPERATURE_TARGET.min}–${TEMPERATURE_TARGET.max}°C`,
-        'In target',
-        (v) => v >= TEMPERATURE_TARGET.min && v <= TEMPERATURE_TARGET.max,
-        GOOD,
-      ),
-      band(
-        `>${TEMPERATURE_TARGET.max}–85°C`,
-        'Warm',
-        (v) => v > TEMPERATURE_TARGET.max && v <= 85,
-        HIGH,
-      ),
+      band('−40 to <12°C', 'Dangerous', (v) => v >= -40 && v < 12, DANGER),
+      band('12 to <18°C', 'Mild cold', (v) => v >= 12 && v < 18, COOL),
+      band('18 to <25°C', 'Standard', (v) => v >= 18 && v < 25, GOOD),
+      band('25 to <35°C', 'Warm', (v) => v >= 25 && v < 35, HIGH),
+      band('35–85°C', 'Dangerous', (v) => v >= 35 && v <= 85, DANGER),
     ],
   },
   humidity_percent: {
