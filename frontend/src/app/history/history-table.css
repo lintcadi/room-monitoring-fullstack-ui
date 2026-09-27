@@ -70,3 +70,35 @@ tr:first-child {
 .multiple th:nth-child(3) {
   width: 22%;
 }
+
+.detail-line {
+  display: block;
+  margin-top: 3px;
+  line-height: 1.35;
+}
+.aggregated td {
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+.aggregated td small {
+  font-size: 0.55rem;
+}
+
+.aggregated:not(.multiple) th:first-child {
+  width: 38%;
+}
+.aggregated:not(.multiple) th:nth-child(2) {
+  width: 28%;
+}
+.aggregated:not(.multiple) th:nth-child(3) {
+  width: 34%;
+}
+.aggregated.multiple th:first-child {
+  width: 30%;
+}
+.aggregated.multiple th:nth-child(2) {
+  width: 20%;
+}
+.aggregated.multiple th:nth-child(3) {
+  width: 23%;
+}

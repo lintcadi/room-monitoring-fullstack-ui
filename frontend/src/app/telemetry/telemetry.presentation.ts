@@ -1,4 +1,4 @@
-import { TagView, localTimestamp } from './telemetry.models';
+import { TagView, TelemetryTag, localTimestamp } from './telemetry.models';
 
 export const CONDITIONS = ['temperature_c', 'humidity_percent', 'pressure_hpa'];
 export const AIR_QUALITY = ['iaq', 'co2_equivalent_ppm', 'breath_voc_equivalent_ppm'];
@@ -43,8 +43,14 @@ export function accuracyLabel(value: number | undefined): string {
 }
 
 export function displayValue(tag: TagView): string {
-  const value = tag.reading?.value;
-  if (value === undefined) return '—';
+  return formatValue(tag, tag.reading?.value);
+}
+
+export function formatValue(
+  tag: Pick<TelemetryTag, 'tag_key' | 'unit'>,
+  value: number | undefined | null,
+): string {
+  if (value === undefined || value === null) return '—';
   if (tag.tag_key === 'iaq_accuracy') return accuracyLabel(value);
   if (['stabilization_complete', 'run_in_complete'].includes(tag.tag_key)) {
     return value === 1 ? 'Complete' : value === 0 ? 'In progress' : `Unknown (${value})`;
@@ -63,7 +69,7 @@ export function displayValue(tag: TagView): string {
   }).format(displayed);
 }
 
-export function displayUnit(tag: TagView): string {
+export function displayUnit(tag: Pick<TelemetryTag, 'tag_key' | 'unit'>): string {
   return tag.tag_key === 'gas_resistance_ohm' && tag.unit === 'Ω' ? 'kΩ' : (tag.unit ?? '');
 }
 

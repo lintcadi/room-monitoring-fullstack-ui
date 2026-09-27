@@ -60,7 +60,7 @@ class TelemetryHistoryTests(unittest.IsolatedAsyncioTestCase):
     async def test_empty_history(self):
         response = await self.get_history()
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"readings": [], "next_cursor": None})
+        self.assertEqual(response.json(), {"aggregation": "raw", "readings": [], "next_cursor": None})
 
     async def test_local_dates_use_taipei_without_requiring_an_offset(self):
         response = await self.get_history(
@@ -144,7 +144,7 @@ class TelemetryHistoryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_invalid_query_parameters_do_not_query_database(self):
         for params in [
-            {"start": "invalid"}, {"limit": 0}, {"limit": 1001},
+            {"aggregation": "yearly"}, {"start": "invalid"}, {"limit": 0}, {"limit": 1001},
             {"tag_ids": "invalid"}, {"cursor": ""}, {"cursor": "x" * 1025},
         ]:
             with self.subTest(params=params):
@@ -172,6 +172,40 @@ class TelemetryHistoryTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(cursor=cursor):
                 self.assertEqual((await self.get_history(cursor=cursor)).status_code, 400)
         self.db_cursor.execute.assert_not_called()
+
+    async def test_cursor_is_bound_to_aggregation_range_and_tag_filters(self):
+        self.db_cursor.fetchall.return_value = [reading(10), reading(11)]
+        first = await self.get_history(limit=1, tag_ids=[1, 2])
+        cursor = first.json()['next_cursor']
+        for changed in [
+            {'aggregation': 'hourly'}, {'start': '2026-09-25T01:00:00Z'},
+            {'end': '2026-09-26T01:00:00Z'}, {'tag_ids': [1]}, {'tag_name': ['temperature']},
+        ]:
+            self.db_cursor.execute.reset_mock()
+            response = await self.get_history(**{'limit': 1, 'tag_ids': [1, 2], 'cursor': cursor, **changed})
+            self.assertEqual(response.status_code, 400)
+            self.db_cursor.execute.assert_not_called()
+        response = await self.get_history(limit=1, tag_ids=[2, 1, 2], cursor=cursor)
+        self.assertEqual(response.status_code, 200)
+
+    async def test_aggregate_response_does_not_invent_reading_ids_or_quality(self):
+        begin = datetime(2026, 9, 25, 8)
+        finish = datetime(2026, 9, 25, 9)
+        self.db_cursor.fetchall.return_value = [
+            (begin, 1, 'temperature_c', 25.0, 20.0, 30.0, 3, 2, 0, 1, 0, 2, 99.0, 2, datetime(2026, 9, 25, 8, 40), finish),
+        ]
+        response = await self.get_history(aggregation='hourly', start='2026-09-25T08:15:00', end='2026-09-25T09:00:00')
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        self.assertEqual(result['aggregation'], 'hourly')
+        self.assertNotIn('readings', result)
+        bucket = result['buckets'][0]
+        self.assertEqual(bucket['value'], 25)
+        self.assertEqual(bucket['coverage_start'], '2026-09-25T08:15:00+08:00')
+        self.assertTrue(bucket['partial'])
+        self.assertEqual(bucket['bad_count'], 1)
+        self.assertNotIn('id', bucket)
+        self.assertNotIn('quality', bucket)
 
     async def test_database_errors_are_not_empty_results(self):
         self.db_cursor.execute.side_effect = RuntimeError("Database unavailable")

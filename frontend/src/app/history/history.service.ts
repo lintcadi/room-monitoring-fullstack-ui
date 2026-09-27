@@ -2,8 +2,16 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, map } from 'rxjs';
-import { TelemetryReading, TelemetryTag } from '../telemetry/telemetry.models';
-import { HistoryQuery, MAX_READINGS, PAGE_SIZE, parseHistory, recentRange } from './history.models';
+import { TelemetryTag } from '../telemetry/telemetry.models';
+import {
+  HistoryQuery,
+  HistoryRow,
+  rowKey,
+  MAX_READINGS,
+  PAGE_SIZE,
+  parseHistory,
+  recentRange,
+} from './history.models';
 
 // Scoped to the history page: leaving it cancels pending HTTP requests.
 @Injectable()
@@ -15,7 +23,7 @@ export class HistoryService {
   readonly tagsLoading = signal(false);
   readonly tagsError = signal(false);
   readonly query = signal<HistoryQuery | null>(null);
-  readonly readings = signal<TelemetryReading[]>([]);
+  readonly readings = signal<HistoryRow[]>([]);
   readonly nextCursor = signal<string | null>(null);
   readonly loading = signal(false);
   readonly error = signal(false);
@@ -79,6 +87,7 @@ export class HistoryService {
     this.loading.set(true);
     this.error.set(false);
     let params = new HttpParams()
+      .set('aggregation', query.aggregation ?? 'raw')
       .set('start', query.start)
       .set('end', query.end)
       .set('limit', Math.min(PAGE_SIZE, MAX_READINGS - this.readings().length));
@@ -96,8 +105,8 @@ export class HistoryService {
       )
       .subscribe({
         next: (page) => {
-          const merged = new Map(this.readings().map((row) => [row.id, row]));
-          for (const row of page.readings) merged.set(row.id, row);
+          const merged = new Map(this.readings().map((row) => [rowKey(row), row]));
+          for (const row of page.readings) merged.set(rowKey(row), row);
           this.readings.set([...merged.values()]);
           this.nextCursor.set(page.next_cursor);
           this.loaded.set(true);

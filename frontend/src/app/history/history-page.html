@@ -35,6 +35,14 @@
             }
           </mat-select>
         </mat-form-field>
+        <mat-form-field class="aggregation-picker" appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Aggregation</mat-label>
+          <mat-select [value]="aggregation()" (selectionChange)="aggregation.set($event.value)">
+            @for (option of aggregations; track option.value) {
+              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
         <div class="range-controls">
           <mat-button-toggle-group
             class="range-picker"
@@ -74,7 +82,7 @@
             aria-label="Refresh history"
             title="Refresh the applied filters"
           >
-            <span aria-hidden="true">↻</span><span class="refresh-label">Refresh</span>
+            <span class="refresh-label">Refresh</span>
           </button>
         </div>
       </div>
@@ -85,14 +93,28 @@
         @if (pending()) {
           <span class="pending-filters" role="status">Unapplied changes</span>
         }
-        <span class="range-zone">Taipei · end exclusive</span>
       </div>
-      <div class="summary-grid" [class.comparison]="multiple()" aria-label="Loaded reading summary">
+      <div
+        class="summary-grid"
+        [class.comparison]="multiple() || aggregated()"
+        aria-label="Loaded reading summary"
+      >
         <div>
           <span>LOADED READINGS</span
-          ><strong>{{ history.readings().length | number }}<small> observations</small></strong>
+          ><strong
+            >{{ history.readings().length | number
+            }}<small>{{ aggregated() ? ' buckets' : ' observations' }}</small></strong
+          >
         </div>
-        @if (multiple()) {
+        @if (aggregated()) {
+          <div>
+            <span>SOURCE OBSERVATIONS</span><strong>{{ sampleCount() | number }}</strong>
+          </div>
+          <div>
+            <span>GOOD QUALITY</span
+            ><strong>{{ goodCount() | number }}<small> observations</small></strong>
+          </div>
+        } @else if (multiple()) {
           <div>
             <span>MEASUREMENTS</span
             ><strong>{{ history.selectedTags().length }}<small> selected</small></strong>
@@ -137,9 +159,9 @@
               {{ multiple() ? 'Comparison' : history.tag()?.name
               }}<span>{{ multiple() ? '' : unit() }}</span>
             </h2>
-            <span class="completion" [class.partial]="history.nextCursor()">{{
-              completeness()
-            }}</span>
+            <span class="completion" [class.partial]="history.nextCursor()"
+              >{{ completeness() }} · {{ appliedAggregationLabel() }}</span
+            >
           </div>
           <mat-button-toggle-group
             class="view-picker"
@@ -191,16 +213,22 @@
             [query]="query"
           />
         } @else {
-          <app-history-table [readings]="history.readings()" [tags]="history.selectedTags()" />
+          <app-history-table
+            [readings]="history.readings()"
+            [tags]="history.selectedTags()"
+            [aggregated]="aggregated()"
+          />
         }
         <div class="load-status" role="status">
           <span>
             @if (history.limitReached()) {
-              {{ maxReadings | number }}-reading limit. Narrow the range to inspect more.
+              {{ maxReadings | number }}-{{ aggregated() ? 'bucket' : 'reading' }} limit. Narrow the
+              range to inspect more.
             } @else if (history.nextCursor()) {
-              More readings available. Load more to extend chart navigation.
+              More {{ aggregated() ? 'buckets' : 'readings' }} available. Load more to extend chart
+              navigation.
             } @else if (history.loaded()) {
-              All available readings in this range are loaded.
+              All available {{ aggregated() ? 'buckets' : 'readings' }} in this range are loaded.
             } @else {
               Times use each reading’s observation timestamp.
             }

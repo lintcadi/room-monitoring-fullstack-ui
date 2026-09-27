@@ -22,15 +22,16 @@ import {
   ApexTooltip,
   ApexMarkers,
 } from 'ng-apexcharts';
-import { TelemetryReading, TelemetryTag } from '../telemetry/telemetry.models';
+import { TelemetryTag } from '../telemetry/telemetry.models';
+import { displayUnit, formatValue } from '../telemetry/telemetry.presentation';
 import {
-  displayUnit,
-  displayValue,
-  observedTime,
-  qualityLabel,
-  qualityTone,
-} from '../telemetry/telemetry.presentation';
-import { HistoryQuery, STATUS_KEYS, plotValue } from './history.models';
+  HistoryQuery,
+  HistoryRow,
+  rowKey,
+  rowQuality,
+  STATUS_KEYS,
+  plotValue,
+} from './history.models';
 import {
   ChartRange,
   initialRange,
@@ -40,31 +41,34 @@ import {
   nearestReadingIndex,
   MEASUREMENT_COLORS,
   measurementScale,
+  bucketAtTime,
 } from './history-apex';
+
+import { HistoryObservation } from './history-observation';
 
 @Component({
   selector: 'app-history-chart',
-  imports: [MatButtonModule, ChartComponent],
+  imports: [MatButtonModule, ChartComponent, HistoryObservation],
   templateUrl: './history-chart.html',
   styleUrl: './history-chart.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HistoryChart {
-  readonly readings = input.required<TelemetryReading[]>();
+  readonly readings = input.required<HistoryRow[]>();
   readonly tags = input.required<TelemetryTag[]>();
+  protected readonly aggregated = computed(() => (this.query().aggregation ?? 'raw') !== 'raw');
+  protected readonly rowKey = rowKey;
   protected readonly multiple = computed(() => this.tags().length > 1);
   protected readonly relative = computed(
     () =>
       this.multiple() &&
       new Set(
         this.tags().map((tag) =>
-          STATUS_KEYS.includes(tag.tag_key)
-            ? tag.tag_key
-            : displayUnit({ ...tag, reading: undefined }) || tag.tag_key,
+          STATUS_KEYS.includes(tag.tag_key) ? tag.tag_key : displayUnit(tag) || tag.tag_key,
         ),
       ).size > 1,
   );
-  private readonly tagMap = computed(() => new Map(this.tags().map((tag) => [tag.id, tag])));
+  protected readonly tagMap = computed(() => new Map(this.tags().map((tag) => [tag.id, tag])));
   protected readonly measurements = computed(() =>
     this.tags().map((tag, index) => {
       const rows = this.ordered().filter((row) => row.tag_id === tag.id);
@@ -84,7 +88,7 @@ export class HistoryChart {
   private readonly viewport = signal<ChartRange | null>(null);
   private fit = false;
   protected readonly hover = signal<{
-    row: TelemetryReading;
+    row: HistoryRow;
     x: number;
     y: number;
     left: number;
@@ -92,39 +96,32 @@ export class HistoryChart {
     width: number;
     height: number;
   } | null>(null);
-  protected readonly hoverValue = computed(() =>
-    displayValue({
-      ...this.tagMap().get(this.hover()?.row.tag_id ?? this.tags()[0].id)!,
-      reading: this.hover()?.row,
-    }),
-  );
-  protected readonly hoverUnit = computed(() =>
-    displayUnit({
-      ...this.tagMap().get(this.hover()?.row.tag_id ?? this.tags()[0].id)!,
-      reading: this.hover()?.row,
-    }),
-  );
   protected readonly hoverReadings = computed(() => {
     const focus = this.hover();
     if (!focus) return [];
     const time = readingTime(focus.row);
     return this.measurements().map(({ tag, rows, color }) => {
       const index = nearestReadingIndex(rows, time, this.range());
-      const row = index < 0 ? undefined : rows[index];
+      const row = this.aggregated()
+        ? bucketAtTime(rows, time)
+        : index < 0
+          ? undefined
+          : rows[index];
       return {
         tag,
         row,
         color,
-        value: displayValue({ ...tag, reading: row }),
-        unit: displayUnit({ ...tag, reading: row }),
+        value: formatValue(tag, row?.value),
+        unit: displayUnit(tag),
       };
     });
   });
-  protected readonly observedTime = observedTime;
-  protected readonly qualityLabel = qualityLabel;
-  protected readonly qualityTone = qualityTone;
   protected readonly ordered = computed(() =>
-    [...this.readings()].sort((a, b) => readingTime(a) - readingTime(b) || a.id - b.id),
+    [...this.readings()].sort(
+      (a, b) =>
+        readingTime(a) - readingTime(b) ||
+        rowKey(a).localeCompare(rowKey(b), undefined, { numeric: true }),
+    ),
   );
   protected readonly navigable = computed(() => this.ordered().length > 100);
   protected readonly range = computed(
@@ -139,7 +136,7 @@ export class HistoryChart {
     this.visible().length ? Math.round(10000 / this.visible().length) + '%' : 'No readings',
   );
   protected readonly hasUnknownQuality = computed(() =>
-    this.ordered().some((row) => ![0, 1, 2].includes(row.quality)),
+    this.ordered().some((row) => row.value !== null && ![0, 1, 2].includes(rowQuality(row))),
   );
   protected readonly colors = computed(() =>
     this.multiple()
@@ -248,7 +245,9 @@ export class HistoryChart {
       axisTicks: { show: false },
     };
     // One shared scale includes every quality series. Keep it stable while panning.
-    const values = rows.map((row) => plotValue(this.tagMap().get(row.tag_id)!, row.value));
+    const values = rows.flatMap((row) =>
+      row.value === null ? [] : [plotValue(this.tagMap().get(row.tag_id)!, row.value)],
+    );
     const min = Math.min(...values),
       max = Math.max(...values);
     const padding = min === max ? Math.max(1, Math.abs(min) * 0.01) : (max - min) * 0.08;
@@ -336,7 +335,7 @@ export class HistoryChart {
     const time = range.min + ((event.clientX - grid.left) / grid.width) * (range.max - range.min);
     const rows = this.ordered();
     const index = nearestReadingIndex(rows, time, range);
-    const row = rows[index];
+    const row = this.aggregated() ? bucketAtTime(rows, time) : rows[index];
     if (!row) {
       this.hover.set(null);
       return;
@@ -344,15 +343,16 @@ export class HistoryChart {
     this.focusReading(row, grid);
   }
 
-  private focusReading(row: TelemetryReading, grid: DOMRect): void {
+  private focusReading(row: HistoryRow, grid: DOMRect): void {
     const range = this.range();
     const box = this.canvas().nativeElement.getBoundingClientRect();
     const axis = this.options().yaxis;
     const min = axis.min as number,
       max = axis.max as number;
     const measurement = this.measurements().find(({ tag }) => tag.id === row.tag_id)!;
-    const value = plotValue(measurement.tag, row.value);
-    const plotted = this.relative() ? measurement.scale.normalize(value) : value;
+    const value = row.value === null ? null : plotValue(measurement.tag, row.value);
+    const plotted =
+      value === null ? min : this.relative() ? measurement.scale.normalize(value) : value;
     this.hover.set({
       row,
       x:
@@ -380,7 +380,9 @@ export class HistoryChart {
       ?.getBoundingClientRect();
     if (!rows.length || !grid?.width) return;
     event.preventDefault();
-    const current = rows.findIndex((row) => row.id === this.hover()?.row.id);
+    const current = rows.findIndex(
+      (row) => rowKey(row) === (this.hover() ? rowKey(this.hover()!.row) : null),
+    );
     const index =
       event.key === 'Home'
         ? 0

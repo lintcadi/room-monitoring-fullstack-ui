@@ -49,6 +49,56 @@ Python. `/latest` and `/history` query the database directly. The shared models
 and latest-reading query live in `src/backend/telemetry.py`; HTTP routes live in
 `src/backend/routers/telemetry.py`.
 
+## History aggregation
+
+`GET /api/telemetry/history` accepts `aggregation=raw` (the default), `5min`,
+`hourly`, `daily`, `weekly`, or `monthly`. The existing `start`, `end`, repeated
+`tag_ids` / `tag_name`, `limit`, and `cursor` parameters apply to both modes.
+
+```bash
+curl --get 'http://<backend-host>:8000/api/telemetry/history' \
+  --data-urlencode 'tag_ids=1' \
+  --data-urlencode 'start=2026-09-01T00:00:00+08:00' \
+  --data-urlencode 'end=2026-09-08T00:00:00+08:00' \
+  --data-urlencode 'aggregation=hourly'
+```
+
+Raw responses contain `aggregation: "raw"`, `readings`, and `next_cursor`.
+Aggregated responses contain the selected `aggregation`, `buckets`, and
+`next_cursor`. Each bucket has:
+
+- `tag_id`, `tag_key`, and its calendar `bucket_start` / `bucket_end`.
+- `coverage_start` / `coverage_end`, clipped to the requested half-open range,
+  plus `partial` when that range cuts through the bucket.
+- `method` and `value`: `average` for known numeric measurements, `last` for
+  status codes, readiness flags, IAQ accuracy, heartbeat, and unknown tags.
+- `minimum` / `maximum` for numeric measurements, otherwise null.
+- `sample_count`, `good_count`, `uncertain_count`, `bad_count`, `unknown_count`,
+  and `usable_count` (finite good-quality samples).
+- `last_observed_at` and `last_quality`, describing the actual final observation.
+
+Numeric statistics use finite good-quality observations only, with equal weight
+per sample. A bucket with no usable samples has null statistics. Last-value
+buckets retain the latest observation and its quality, even when that quality
+is bad; ties use ingestion time and then reading ID. Empty intervals are omitted,
+so clients should display gaps rather than substitute zeros or interpolate.
+
+All calendar boundaries use Asia/Taipei. Weeks begin Monday at midnight, months
+begin on the first, and five-minute buckets align to the clock. The connection's
+transaction-local timezone supports both timestamp and timestamptz columns.
+No timestamp migration or additional service is required.
+
+SQL aggregation runs over all observations matching the requested range and
+filters. Pagination is applied afterward to complete `(bucket_start, tag_id)`
+results; `limit` counts buckets, not source observations. Raw pagination follows
+`(observed_at, id)`. Cursors are bound to the range, tag filters, and aggregation;
+changing any of those requires a new query without a cursor. Cursors created
+before this change must also be discarded. Refresh to include late arrivals or
+changes to previously returned buckets; pagination is not a frozen database snapshot.
+
+History contracts and queries live in `src/backend/telemetry_history.py`.
+The route remains `/api/telemetry/history`.
+
 ## Live telemetry
 
 `GET /api/telemetry/stream` opens an SSE connection. It accepts the same repeated
@@ -204,3 +254,13 @@ is needed:
 ```bash
 uv run python -m unittest discover -s tests -v
 ```
+
+The aggregation SQL also has opt-in PostgreSQL integration tests:
+
+```bash
+HISTORY_TEST_DATABASE=1 uv run python -m unittest discover -s tests -p test_telemetry_aggregation_postgres.py -v
+```
+
+These read connection settings from `backend/.env` and use connection-local
+temporary tables. They require permission to create temporary tables, leave
+existing telemetry tables untouched, and discard their fixtures on disconnect.

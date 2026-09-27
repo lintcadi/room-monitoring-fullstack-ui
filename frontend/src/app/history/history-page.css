@@ -429,3 +429,47 @@ footer {
     display: none;
   }
 }
+
+.aggregation-picker {
+  width: 140px;
+  flex-shrink: 0;
+}
+@media (max-width: 1050px) and (min-width: 701px) {
+  .filters {
+    gap: 8px;
+  }
+  .aggregation-picker {
+    width: 120px;
+  }
+  .refresh-label {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .filters {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .tag-picker {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .filter-actions {
+    grid-row: 2;
+    grid-column: 2;
+  }
+  .aggregation-picker {
+    grid-row: 1;
+    grid-column: 2;
+    width: 120px;
+  }
+  .range-controls {
+    grid-row: 2;
+    grid-column: 1;
+    gap: 4px;
+    min-width: 0;
+  }
+  .range-controls > button {
+    padding-inline: 6px;
+    min-width: 0;
+  }
+}

@@ -14,10 +14,18 @@ import {
   signal,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { TelemetryReading } from '../telemetry/telemetry.models';
-import { displayValue, displayUnit, observedTime } from '../telemetry/telemetry.presentation';
+import { formatValue, displayUnit, observedTime } from '../telemetry/telemetry.presentation';
 import { HistoryService } from './history.service';
-import { MAX_READINGS, STATUS_KEYS, recentRange } from './history.models';
+import {
+  MAX_READINGS,
+  STATUS_KEYS,
+  recentRange,
+  AGGREGATIONS,
+  Aggregation,
+  HistoryRow,
+  isBucket,
+  rowQuality,
+} from './history.models';
 import { HistoryChart } from './history-chart';
 import { HistoryTable } from './history-table';
 import { HistoryRange } from './history-range';
@@ -43,6 +51,22 @@ export class HistoryPage implements OnInit, OnDestroy {
   protected readonly history = inject(HistoryService);
   private readonly dialog = inject(MatDialog);
   private rangeDialog?: MatDialogRef<HistoryRange>;
+  protected readonly aggregations = AGGREGATIONS;
+  protected readonly aggregation = signal<Aggregation>('raw');
+  protected readonly aggregated = computed(
+    () => (this.history.query()?.aggregation ?? 'raw') !== 'raw',
+  );
+  protected readonly appliedAggregationLabel = computed(
+    () => AGGREGATIONS.find((a) => a.value === (this.history.query()?.aggregation ?? 'raw'))!.label,
+  );
+  protected readonly sampleCount = computed(() =>
+    this.history.readings().reduce((sum, row) => sum + (isBucket(row) ? row.sample_count : 1), 0),
+  );
+  protected readonly goodCount = computed(() =>
+    this.history
+      .readings()
+      .reduce((sum, row) => sum + (isBucket(row) ? row.good_count : row.quality === 0 ? 1 : 0), 0),
+  );
   protected readonly preset = signal<number | 'custom'>(1);
   private readonly appliedPreset = signal<number | 'custom'>(1);
   private readonly draftTagIds = signal<number[] | null>(null);
@@ -56,7 +80,8 @@ export class HistoryPage implements OnInit, OnDestroy {
     if (
       this.selectedTagIds().length !== query.tagIds.length ||
       this.selectedTagIds().some((id) => !query.tagIds.includes(id)) ||
-      this.preset() !== this.appliedPreset()
+      this.preset() !== this.appliedPreset() ||
+      this.aggregation() !== (query.aggregation ?? 'raw')
     )
       return true;
     const range = this.draftRange();
@@ -76,23 +101,23 @@ export class HistoryPage implements OnInit, OnDestroy {
   protected readonly maxReadings = MAX_READINGS;
   protected readonly unit = computed(() => {
     const tag = this.history.tag();
-    return tag ? displayUnit({ ...tag, reading: undefined }) : '';
+    return tag ? displayUnit(tag) : '';
   });
   protected readonly isStatus = computed(() =>
     STATUS_KEYS.includes(this.history.tag()?.tag_key ?? ''),
   );
   protected readonly goodReadings = computed(() =>
-    this.history.readings().filter((row) => row.quality === 0),
+    this.history.readings().filter((row) => rowQuality(row) === 0 && row.value !== null),
   );
   protected readonly min = computed(() =>
-    this.goodReadings().reduce<TelemetryReading | undefined>(
-      (prev, row) => (!prev || row.value < prev.value ? row : prev),
+    this.goodReadings().reduce<HistoryRow | undefined>(
+      (prev, row) => (!prev || (row.value ?? Infinity) < (prev.value ?? Infinity) ? row : prev),
       undefined,
     ),
   );
   protected readonly max = computed(() =>
-    this.goodReadings().reduce<TelemetryReading | undefined>(
-      (prev, row) => (!prev || row.value > prev.value ? row : prev),
+    this.goodReadings().reduce<HistoryRow | undefined>(
+      (prev, row) => (!prev || (row.value ?? -Infinity) > (prev.value ?? -Infinity) ? row : prev),
       undefined,
     ),
   );
@@ -111,9 +136,9 @@ export class HistoryPage implements OnInit, OnDestroy {
             : 'Loading range',
   );
   protected readonly observedTime = observedTime;
-  protected readonly value = (row: TelemetryReading | undefined): string => {
+  protected readonly value = (row: HistoryRow | undefined): string => {
     const tag = this.history.tag();
-    return tag ? displayValue({ ...tag, reading: row }) : '—';
+    return tag ? formatValue(tag, row?.value) : '—';
   };
 
   ngOnInit(): void {
@@ -163,7 +188,7 @@ export class HistoryPage implements OnInit, OnDestroy {
       preset === 'custom' ? (this.draftRange() ?? this.history.query()) : recentRange(preset);
     if (!range) return;
     this.appliedPreset.set(preset);
-    this.history.load({ ...range, tagIds });
+    this.history.load({ ...range, tagIds, aggregation: this.aggregation() });
   }
 
   protected refresh(): void {
@@ -171,6 +196,6 @@ export class HistoryPage implements OnInit, OnDestroy {
     const preset = this.appliedPreset();
     if (!query) return;
     if (preset === 'custom') this.history.load(query);
-    else this.history.load({ tagIds: query.tagIds, ...recentRange(preset) });
+    else this.history.load({ ...query, ...recentRange(preset) });
   }
 }

@@ -1,5 +1,5 @@
 <div class="chart-legend" aria-label="Telemetry quality legend">
-  <span [class.good]="!multiple()">● Good</span
+  <span [class.good]="!multiple()">● {{ aggregated() ? 'Good / averages' : 'Good' }}</span
   ><span [class.uncertain]="!multiple()">◇ Uncertain</span
   ><span [class.bad]="!multiple()">× Bad</span>
   @if (hasUnknownQuality()) {
@@ -11,8 +11,12 @@
         mat-stroked-button
         type="button"
         (click)="resetZoom()"
-        aria-label="Reset zoom to 100 readings"
-        title="Reset to the first 100 readings"
+        [attr.aria-label]="
+          aggregated() ? 'Reset zoom to 100 buckets' : 'Reset zoom to 100 readings'
+        "
+        [title]="
+          aggregated() ? 'Reset to the first 100 buckets' : 'Reset to the first 100 readings'
+        "
       >
         {{ zoomLabel() }}
       </button>
@@ -39,7 +43,8 @@
   </div>
 }
 <div class="window-caption">
-  {{ visible().length }} / {{ ordered().length }} loaded readings in view
+  {{ visible().length }} / {{ ordered().length }} loaded
+  {{ aggregated() ? 'buckets' : 'readings' }} in view
   @if (relative()) {
     <span> · Relative range: 0–100% of each measurement’s loaded min–max</span>
   }
@@ -67,40 +72,41 @@
       [style.top.px]="focus.top"
       [style.height.px]="focus.height"
     ></span>
-    <span
-      class="hover-guide horizontal"
-      aria-hidden="true"
-      [style.left.px]="focus.left"
-      [style.top.px]="focus.y"
-      [style.width.px]="focus.width"
-    ></span>
-    <span
-      class="hover-point"
-      aria-hidden="true"
-      [style.left.px]="focus.x"
-      [style.top.px]="focus.y"
-    ></span>
+    @if (focus.row.value !== null) {
+      <span
+        class="hover-guide horizontal"
+        aria-hidden="true"
+        [style.left.px]="focus.left"
+        [style.top.px]="focus.y"
+        [style.width.px]="focus.width"
+      ></span>
+      <span
+        class="hover-point"
+        aria-hidden="true"
+        [style.left.px]="focus.x"
+        [style.top.px]="focus.y"
+      ></span>
+    }
     <div
       class="reading-tooltip"
       role="status"
       [class.on-left]="focus.x > focus.left + focus.width / 2"
     >
       @if (multiple()) {
-        <span class="tooltip-heading">Nearest observations · individual timestamps</span>
+        <span class="tooltip-heading">{{
+          aggregated() ? 'Selected interval' : 'Nearest observations · individual timestamps'
+        }}</span>
         <div class="tooltip-readings">
           @for (item of hoverReadings(); track item.tag.id) {
-            <div class="tooltip-reading" [class.focused]="item.row?.id === focus.row.id">
+            <div
+              class="tooltip-reading"
+              [class.focused]="item.row && rowKey(item.row) === rowKey(focus.row)"
+            >
               <span class="tooltip-name"
                 ><i [style.background]="item.color"></i>{{ item.tag.name }}</span
               >
               @if (item.row; as row) {
-                <strong
-                  >{{ item.value }} <small>{{ item.unit }}</small></strong
-                >
-                <span class="badge" [attr.data-tone]="qualityTone(row.quality)"
-                  >Data: {{ qualityLabel(row.quality) }}</span
-                >
-                <time>{{ observedTime(row.observed_at) }}</time>
+                <app-history-observation [row]="row" [tag]="item.tag" />
               } @else {
                 <small>No loaded reading in view</small>
               }
@@ -108,13 +114,7 @@
           }
         </div>
       } @else {
-        <time>{{ observedTime(focus.row.observed_at) }}</time>
-        <strong
-          >{{ hoverValue() }} <small>{{ hoverUnit() }}</small></strong
-        >
-        <span class="badge" [attr.data-tone]="qualityTone(focus.row.quality)"
-          >Data: {{ qualityLabel(focus.row.quality) }}</span
-        >
+        <app-history-observation [row]="focus.row" [tag]="tagMap().get(focus.row.tag_id)!" />
       }
     </div>
   }

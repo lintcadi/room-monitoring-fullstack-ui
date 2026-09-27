@@ -179,6 +179,34 @@ one-hour range automatically.
   data already loaded. Applying filters or leaving the page cancels any
   outstanding history request.
 
+### Aggregation
+
+Choose **Raw**, **5 minutes**, **Hourly**, **Daily**, **Weekly**, or **Monthly**
+from the Aggregation selector, then click **Apply**. The time range remains a
+separate choice: daily aggregation over a one-hour range produces a partial
+bucket covering only that hour. Use Custom for longer ranges.
+
+The frontend sends `aggregation` to the existing `/api/telemetry/history`
+endpoint. PostgreSQL computes complete buckets from all matching observations;
+only the summarized results are paginated. Numeric measurements plot averages
+of finite good-quality samples. Status codes, accuracy, readiness, heartbeat,
+and unknown tags display the last recorded value with its original quality.
+Hover details and the table show bucket periods, partial coverage, sample and
+quality counts, numeric minima/maxima, and last-observation times for state values.
+
+Boundaries follow Asia/Taipei, with Monday-start weeks and calendar months.
+Empty periods break chart lines; buckets without usable numeric samples have
+null values. Hovering a bucket inspects its interval rather than borrowing a
+neighboring value across a gap. Aggregated points have no fabricated reading IDs
+or aggregate quality code: the UI keeps source quality counts separate.
+
+The initial chart window and reset use about 100 buckets in aggregated mode.
+The 5,000-item display limit counts buckets across all selected tags, not source
+observations. Summary cards distinguish loaded buckets from underlying sample
+counts. Refresh and Load more retain the applied aggregation; changing it and
+clicking Apply resets the cursor and chart. Table capacity adapts to the height
+of the displayed rows so bucket details fit on smaller screens.
+
 History charts use **ApexCharts** through the standalone `ng-apexcharts` component.
 The library handles SVG rendering, axes, tooltips, native zoom/pan, keyboard
 navigation and touch gestures. A small app overlay selects tooltip readings by

@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { HistoryService } from './history.service';
-import { HistoryQuery } from './history.models';
+import { HistoryQuery, rowKey } from './history.models';
 
 const query: HistoryQuery = {
   tagIds: [1],
@@ -59,7 +59,7 @@ describe('HistoryService', () => {
     expect(next.request.params.get('end')).toBe(query.end);
     expect(next.request.params.get('tag_ids')).toBe('1');
     next.flush({ readings: [reading(2), reading(3)], next_cursor: null });
-    expect(history.readings().map((row) => row.id)).toEqual([1, 2, 3]);
+    expect(history.readings().map(rowKey)).toEqual(['1', '2', '3']);
     expect(history.nextCursor()).toBeNull();
     history.loadMore();
     http.expectNone((request) => request.url === '/api/telemetry/history');

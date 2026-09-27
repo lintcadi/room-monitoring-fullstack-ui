@@ -16,7 +16,7 @@ import { HistoryQuery, customRange, taipeiInput } from './history.models';
       <mat-dialog-content>
         <p>All times are in Asia/Taipei (UTC+08:00).</p>
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Start · inclusive</mat-label>
+          <mat-label>Start - inclusive</mat-label>
           <input
             matInput
             type="datetime-local"
@@ -27,7 +27,7 @@ import { HistoryQuery, customRange, taipeiInput } from './history.models';
           />
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>End · exclusive</mat-label>
+          <mat-label>End - exclusive</mat-label>
           <input
             matInput
             type="datetime-local"

@@ -36,7 +36,9 @@ describe('History filter application', () => {
   const request = () => http.expectOne((r) => r.url === '/api/telemetry/history');
   const button = (text: string) => loader.getHarness(MatButtonHarness.with({ text }));
   const selectTag = async (text: string) => {
-    const select = await loader.getHarness(MatSelectHarness);
+    const select = await loader.getHarness(
+      MatSelectHarness.with({ selector: '.tag-picker mat-select' }),
+    );
     await select.clickOptions({ text });
     await select.close();
   };
@@ -135,7 +137,11 @@ describe('History filter application', () => {
         Date.parse(refresh.request.params.get('start')!),
     ).toBe(3600000);
     refresh.flush({ readings: [], next_cursor: null });
-    expect(await (await loader.getHarness(MatSelectHarness)).getValueText()).toBe('2 measurements');
+    expect(
+      await (
+        await loader.getHarness(MatSelectHarness.with({ selector: '.tag-picker mat-select' }))
+      ).getValueText(),
+    ).toBe('2 measurements');
     expect(
       await (await loader.getHarness(MatButtonToggleHarness.with({ text: '24h' }))).isChecked(),
     ).toBe(true);
@@ -234,5 +240,33 @@ describe('History filter application', () => {
     expect(fixture.nativeElement.querySelector('.summary-grid').textContent).not.toContain(
       'MINIMUM',
     );
+  });
+  it('stages aggregation until Apply and retains the applied mode during refresh and paging', async () => {
+    const select = await loader.getHarness(
+      MatSelectHarness.with({ selector: '.aggregation-picker mat-select' }),
+    );
+    await select.clickOptions({ text: 'Hourly' });
+    http.expectNone((r) => r.url === '/api/telemetry/history');
+    expect(history.query()?.aggregation ?? 'raw').toBe('raw');
+    expect(fixture.nativeElement.textContent).toContain('Unapplied changes');
+    await (await button('Apply')).click();
+    const first = request();
+    expect(first.request.params.get('aggregation')).toBe('hourly');
+    first.flush({ aggregation: 'hourly', buckets: [], next_cursor: 'next' });
+    await select.clickOptions({ text: 'Daily' });
+    await (await button('Load more')).click();
+    const more = request();
+    expect(more.request.params.get('aggregation')).toBe('hourly');
+    expect(more.request.params.get('cursor')).toBe('next');
+    more.flush({ aggregation: 'hourly', buckets: [], next_cursor: null });
+    await (
+      await loader.getHarness(MatButtonHarness.with({ selector: '[aria-label="Refresh history"]' }))
+    ).click();
+    const refresh = request();
+    expect(refresh.request.params.get('aggregation')).toBe('hourly');
+    expect(refresh.request.params.has('cursor')).toBe(false);
+    refresh.flush({ aggregation: 'hourly', buckets: [], next_cursor: null });
+    expect(await select.getValueText()).toBe('Daily');
+    expect(fixture.nativeElement.textContent).toContain('Unapplied changes');
   });
 });
