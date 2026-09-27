@@ -1,16 +1,19 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
 import { MatButtonToggleHarness } from '@angular/material/button-toggle/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { HistoryPage } from './history-page';
 import { HistoryService } from './history.service';
 import { HistoryRange } from './history-range';
+import { HistoryChart } from './history-chart';
+import { HistoryQuery } from './history.models';
 
 // Rendering and gestures are covered by browser checks; these tests exercise filters.
 vi.mock('apexcharts/client', () => ({
@@ -268,5 +271,137 @@ describe('History filter application', () => {
     refresh.flush({ aggregation: 'hourly', buckets: [], next_cursor: null });
     expect(await select.getValueText()).toBe('Daily');
     expect(fixture.nativeElement.textContent).toContain('Unapplied changes');
+  });
+
+  it('applies a query from code immediately and synchronizes filters, chart, and refresh', async () => {
+    await selectTag('Humidity · %');
+    await selectPreset('6h');
+    const aggregation = await loader.getHarness(
+      MatSelectHarness.with({ selector: '.aggregation-picker mat-select' }),
+    );
+    await aggregation.clickOptions({ text: 'Daily' });
+    await selectPreset('Readings');
+    const query: HistoryQuery = {
+      tagIds: [2],
+      start: '2026-09-20T08:00:00+08:00',
+      end: '2026-09-20T09:00:00+08:00',
+      aggregation: 'hourly',
+    };
+    fixture.componentInstance.applyQuery(query);
+    const applied = request();
+    expect(applied.request.params.getAll('tag_ids')).toEqual(['2']);
+    expect(applied.request.params.get('start')).toBe(query.start);
+    expect(applied.request.params.get('end')).toBe(query.end);
+    expect(applied.request.params.get('aggregation')).toBe('hourly');
+    expect(applied.request.params.has('cursor')).toBe(false);
+    expect(history.readings()).toEqual([]);
+    expect(history.nextCursor()).toBeNull();
+    const bucket = {
+      tag_id: 2,
+      tag_key: 'humidity_percent',
+      bucket_start: query.start,
+      bucket_end: query.end,
+      coverage_start: query.start,
+      coverage_end: query.end,
+      partial: false,
+      method: 'average',
+      value: 60,
+      minimum: 55,
+      maximum: 65,
+      sample_count: 2,
+      good_count: 2,
+      uncertain_count: 0,
+      bad_count: 0,
+      unknown_count: 0,
+      usable_count: 2,
+      last_observed_at: query.start,
+      last_quality: 0,
+    };
+    applied.flush({ aggregation: 'hourly', buckets: [bucket], next_cursor: null });
+    await fixture.whenStable();
+    expect(await aggregation.getValueText()).toBe('Hourly');
+    expect(
+      await (
+        await loader.getHarness(MatSelectHarness.with({ selector: '.tag-picker mat-select' }))
+      ).getValueText(),
+    ).toBe('Humidity');
+    expect(fixture.nativeElement.querySelector('[aria-pressed="true"]').textContent).toContain(
+      'Custom',
+    );
+    expect(fixture.nativeElement.textContent).not.toContain('Unapplied changes');
+    const chart = fixture.debugElement.query(By.directive(HistoryChart))
+      .componentInstance as HistoryChart;
+    expect(chart.query()).toEqual(query);
+    expect(chart.tags().map((tag) => tag.id)).toEqual([2]);
+    expect(chart.readings()).toEqual([bucket]);
+    await (
+      await loader.getHarness(MatButtonHarness.with({ selector: '[aria-label="Refresh history"]' }))
+    ).click();
+    const refresh = request();
+    expect(refresh.request.params.get('start')).toBe(query.start);
+    expect(refresh.request.params.get('end')).toBe(query.end);
+    expect(refresh.request.params.get('aggregation')).toBe('hourly');
+    refresh.flush({ aggregation: 'hourly', buckets: [], next_cursor: null });
+  });
+
+  it('replaces an in-flight request and ignores dates returned by a superseded dialog', async () => {
+    const closed = new Subject<{ start: string; end: string } | undefined>();
+    const close = vi.fn();
+    const open = vi.spyOn(TestBed.inject(MatDialog), 'open').mockReturnValue({
+      afterClosed: () => closed,
+      close,
+    } as unknown as MatDialogRef<HistoryRange>);
+    await (await button('Custom')).click();
+    const first: HistoryQuery = {
+      tagIds: [2],
+      start: '2026-09-20T08:00:00+08:00',
+      end: '2026-09-20T09:00:00+08:00',
+      aggregation: 'hourly',
+    };
+    fixture.componentInstance.applyQuery(first);
+    const oldRequest = request();
+    expect(close).toHaveBeenCalledOnce();
+    closed.next({ start: '2026-09-01T08:00:00+08:00', end: '2026-09-01T09:00:00+08:00' });
+    closed.complete();
+    const second = { ...first, tagIds: [1, 2], aggregation: undefined };
+    fixture.componentInstance.applyQuery(second);
+    expect(oldRequest.cancelled).toBe(true);
+    const current = request();
+    expect(current.request.params.get('aggregation')).toBe('raw');
+    current.flush({ readings: [], next_cursor: null });
+    await fixture.whenStable();
+    expect(fixture.nativeElement.textContent).not.toContain('Unapplied changes');
+    expect(
+      await (
+        await loader.getHarness(
+          MatSelectHarness.with({ selector: '.aggregation-picker mat-select' }),
+        )
+      ).getValueText(),
+    ).toBe('Raw');
+    await (await button('Custom')).click();
+    expect(open.mock.calls[1][1]?.data).toMatchObject({ start: second.start, end: second.end });
+  });
+
+  it('ignores an empty programmatic selection and preserves the table on manual Apply', async () => {
+    await selectTag('Humidity · %');
+    await selectPreset('Readings');
+    const query = history.query()!;
+    const readings = history.readings();
+    fixture.componentInstance.applyQuery({ ...query, tagIds: [] });
+    http.expectNone((r) => r.url === '/api/telemetry/history');
+    expect(history.query()).toEqual(query);
+    expect(fixture.nativeElement.querySelector('app-history-table')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Unapplied changes');
+    await (await button('Apply')).click();
+    const applied = request();
+    expect(applied.request.params.getAll('tag_ids')).toEqual(['1', '2']);
+    applied.flush({ readings, next_cursor: null });
+    expect(
+      await (
+        await loader.getHarness(MatButtonToggleHarness.with({ text: 'Readings' }))
+      ).isChecked(),
+    ).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-history-table')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Unapplied changes');
   });
 });

@@ -179,6 +179,25 @@ one-hour range automatically.
   data already loaded. Applying filters or leaving the page cancels any
   outstanding history request.
 
+### Applying a query from code
+
+`HistoryPage.applyQuery(query)` is the shared entry point for applying resolved
+history filters. Supply a `HistoryQuery` with tag IDs from the loaded catalog,
+`start`, `end`, and an optional `aggregation` (defaults to `raw`). It synchronizes
+the visible controls, clears pending edits, closes any existing range dialog,
+selects the chart, and calls `HistoryService.load()` immediately. The service
+cancels the previous request and resets readings and pagination before fetching.
+
+Explicit dates default to **Custom**, so Refresh preserves their boundaries.
+The optional second argument accepts `preset` (hours or `'custom'`) and `view`
+(`'chart'` or `'table'`). Manual Apply uses this same method with the selected
+preset and current view. Refresh reloads the applied query directly to preserve
+unfinished filter edits. An empty tag selection leaves the page unchanged.
+
+This method accepts an already resolved application query; it does not interpret
+natural language or validate external tool arguments. Pagination, aggregation,
+and the initial chart zoom retain their existing behavior.
+
 ### Aggregation
 
 Choose **Raw**, **5 minutes**, **Hourly**, **Daily**, **Weekly**, or **Monthly**

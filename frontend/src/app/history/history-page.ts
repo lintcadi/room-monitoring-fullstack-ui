@@ -23,12 +23,18 @@ import {
   AGGREGATIONS,
   Aggregation,
   HistoryRow,
+  HistoryQuery,
   isBucket,
   rowQuality,
 } from './history.models';
 import { HistoryChart } from './history-chart';
 import { HistoryTable } from './history-table';
 import { HistoryRange } from './history-range';
+
+interface HistoryApplicationOptions {
+  preset?: number | 'custom';
+  view?: 'chart' | 'table';
+}
 
 @Component({
   selector: 'app-history-page',
@@ -158,20 +164,27 @@ export class HistoryPage implements OnInit, OnDestroy {
     if (!query) return;
     const preset = this.preset();
     const range = preset === 'custom' ? (this.draftRange() ?? query) : recentRange(preset);
-    this.rangeDialog = this.dialog.open(HistoryRange, {
+    const dialog = this.dialog.open(HistoryRange, {
       data: { ...query, ...range },
       width: '420px',
       maxWidth: 'calc(100vw - 24px)',
     });
-    this.rangeDialog
-      .afterClosed()
-      .subscribe((range: { start: string; end: string } | undefined) => {
-        if (range) this.custom(range);
-      });
+    this.rangeDialog = dialog;
+    dialog.afterClosed().subscribe((range: { start: string; end: string } | undefined) => {
+      if (this.rangeDialog !== dialog) return;
+      this.rangeDialog = undefined;
+      if (range) this.custom(range);
+    });
   }
 
   ngOnDestroy(): void {
-    this.rangeDialog?.close();
+    this.closeRange();
+  }
+
+  private closeRange(): void {
+    const dialog = this.rangeDialog;
+    this.rangeDialog = undefined;
+    dialog?.close();
   }
 
   protected custom(range: { start: string; end: string }): void {
@@ -187,14 +200,32 @@ export class HistoryPage implements OnInit, OnDestroy {
     const range =
       preset === 'custom' ? (this.draftRange() ?? this.history.query()) : recentRange(preset);
     if (!range) return;
+    this.applyQuery(
+      { ...range, tagIds, aggregation: this.aggregation() },
+      { preset, view: this.view() },
+    );
+  }
+
+  // Entry point for an already resolved query, whether submitted by Apply or code.
+  // Explicit dates default to Custom so Refresh keeps their original boundaries.
+  applyQuery(query: HistoryQuery, options: HistoryApplicationOptions = {}): void {
+    if (!query.tagIds.length) return;
+    this.closeRange();
+    const preset = options.preset ?? 'custom';
+    this.preset.set(preset);
     this.appliedPreset.set(preset);
-    this.history.load({ ...range, tagIds, aggregation: this.aggregation() });
+    this.aggregation.set(query.aggregation ?? 'raw');
+    this.draftTagIds.set(null);
+    this.draftRange.set(null);
+    this.view.set(options.view ?? 'chart');
+    this.history.load(query);
   }
 
   protected refresh(): void {
     const query = this.history.query();
     const preset = this.appliedPreset();
     if (!query) return;
+    // Refresh reloads the applied query while preserving any unfinished edits.
     if (preset === 'custom') this.history.load(query);
     else this.history.load({ ...query, ...recentRange(preset) });
   }
