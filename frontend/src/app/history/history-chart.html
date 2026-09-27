@@ -87,11 +87,7 @@
         [style.top.px]="focus.y"
       ></span>
     }
-    <div
-      class="reading-tooltip"
-      role="status"
-      [class.on-left]="focus.x > focus.left + focus.width / 2"
-    >
+    <div #tooltip class="reading-tooltip" role="status">
       @if (multiple()) {
         <span class="tooltip-heading">{{
           aggregated() ? 'Selected interval' : 'Nearest observations · individual timestamps'

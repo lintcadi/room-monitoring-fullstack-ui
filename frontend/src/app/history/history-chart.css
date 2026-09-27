@@ -70,10 +70,14 @@ apx-chart {
   transform: translate(-50%, -50%);
 }
 .reading-tooltip {
-  top: 30px;
-  right: 8px;
+  top: 0;
+  left: 0;
+  visibility: hidden;
   z-index: 2;
+  width: max-content;
   max-width: calc(100% - 16px);
+  max-height: calc(100% - 16px);
+  overflow: auto;
   display: grid;
   justify-items: start;
   gap: 6px;
@@ -83,10 +87,6 @@ apx-chart {
   background: var(--surface);
   box-shadow: 0 3px 12px #203f3020;
   font-size: 0.7rem;
-}
-.reading-tooltip.on-left {
-  left: 8px;
-  right: auto;
 }
 .reading-tooltip time,
 .reading-tooltip small {
@@ -133,9 +133,7 @@ apx-chart {
   border-radius: 50%;
   margin-right: 5px;
 }
-.reading-tooltip {
-  max-height: calc(100% - 34px);
-  overflow: auto;
+.reading-tooltip.scrollable {
   pointer-events: auto;
 }
 .tooltip-heading {

@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   afterNextRender,
+  afterRenderEffect,
   computed,
   effect,
   inject,
@@ -83,6 +84,7 @@ export class HistoryChart {
   readonly query = input.required<HistoryQuery>();
   private readonly destroyRef = inject(DestroyRef);
   private readonly canvas = viewChild.required<ElementRef<HTMLDivElement>>('canvas');
+  private readonly tooltip = viewChild<ElementRef<HTMLDivElement>>('tooltip');
   private readonly chart = viewChild(ChartComponent);
   private readonly size = signal({ width: 900, height: 300 });
   private readonly viewport = signal<ChartRange | null>(null);
@@ -296,6 +298,40 @@ export class HistoryChart {
       this.viewport.set(null);
       this.hover.set(null);
       this.fit = false;
+    });
+    afterRenderEffect({
+      earlyRead: () => {
+        const focus = this.hover();
+        const element = this.tooltip()?.nativeElement;
+        if (!focus || !element) return null;
+
+        // Measure rendered content, which varies with measurement count and aggregation.
+        const box = element.getBoundingClientRect();
+        const canvas = this.canvas().nativeElement.getBoundingClientRect();
+        const margin = 8;
+        const gap = 14;
+        const right = focus.x + gap;
+        const left = focus.x - gap - box.width;
+        const preferredX = right + box.width <= canvas.width - margin ? right : left;
+        return {
+          element,
+          x: Math.max(margin, Math.min(preferredX, canvas.width - box.width - margin)),
+          y: Math.max(
+            margin,
+            Math.min(focus.y - box.height / 2, canvas.height - box.height - margin),
+          ),
+          scrollable: element.scrollHeight > element.clientHeight + 1,
+        };
+      },
+      write: (position) => {
+        const measured = position();
+        if (!measured) return;
+        const { element, x, y, scrollable } = measured;
+        element.style.left = `${x}px`;
+        element.style.top = `${y}px`;
+        element.style.visibility = 'visible';
+        element.classList.toggle('scrollable', scrollable);
+      },
     });
     afterNextRender(() => {
       const observer = new ResizeObserver((entries) => {

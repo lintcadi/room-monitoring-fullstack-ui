@@ -231,7 +231,8 @@ has its own series: good data is connected with gaps at non-good readings; other
 lines. Status tags use steps. Move horizontally anywhere inside the plot to inspect
 the nearest timestamp; pointer height does not affect selection. A vertical dashed
 guide marks the selected time, a horizontal guide marks its value, and one tooltip
-shows actual values, units and data quality. In comparisons, it finds the nearest
+shows actual values, units and data quality. The tooltip follows the focused dot,
+flips to its left when needed, and stays inside the chart edges. In comparisons, it finds the nearest
 loaded observation for each measurement inside the visible time window and shows
 each timestamp separately; it does not interpolate or assume synchronized updates.
 Colors identify measurements and marker shapes identify quality. The measurement
