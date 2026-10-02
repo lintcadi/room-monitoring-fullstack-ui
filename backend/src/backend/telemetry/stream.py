@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import math
 from collections.abc import AsyncIterator
 from contextlib import suppress
 
@@ -54,12 +55,13 @@ class TelemetryStream:
         try:
             snapshot = await fetch_latest_telemetry()
         except (OperationalError, PoolTimeout) as exc:
-            async with self._condition:
-                if not self._unavailable:
-                    logger.warning("Live telemetry temporarily unavailable (%s)", type(exc).__name__)
-                    self._unavailable = True
-                    self._version += 1
-                    self._condition.notify_all()
+            await self._mark_unavailable(type(exc).__name__)
+            return
+
+        # All tags belong to one sensor. Reject the whole poll before non-finite
+        # values serialize as null and cause clients to close their streams.
+        if any(not math.isfinite(reading.value) for reading in snapshot.readings):
+            await self._mark_unavailable("non-finite sensor value")
             return
 
         current = {reading.tag_id: reading for reading in snapshot.readings}
@@ -68,6 +70,14 @@ class TelemetryStream:
                 # Replace the map rather than mutating snapshots held by clients.
                 self._readings = current
                 self._unavailable = False
+                self._version += 1
+                self._condition.notify_all()
+
+    async def _mark_unavailable(self, reason: str) -> None:
+        async with self._condition:
+            if not self._unavailable:
+                logger.warning("Live telemetry temporarily unavailable (%s)", reason)
+                self._unavailable = True
                 self._version += 1
                 self._condition.notify_all()
 

@@ -75,6 +75,9 @@ development server so it picks up the additional global theme stylesheet.
   with a notice. EventSource retries disconnected streams automatically; the
   Reconnect button also permits a manual retry.
 - A malformed event closes the connection and shows a retryable error.
+- If any sensor value is NaN or infinite, the backend reports the whole live feed
+  unavailable. Last-known readings remain visible with a notice; the stream stays
+  open and a fresh snapshot restores all measurements automatically after recovery.
 - Missing readings display an em dash, never zero. An empty snapshot is valid.
 - Known tags have appropriate numeric precision or diagnostic labels. Unrecognized
   tags remain visible with the additional measurements.

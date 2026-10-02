@@ -146,6 +146,56 @@ class TelemetryStreamTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(event.event, "snapshot")
         self.assertEqual([r.id for r in event.data.readings], [10])
 
+    async def test_non_finite_value_pauses_all_tags_and_recovers_with_full_snapshot(self):
+        events = self.subscribe()
+        filtered = self.subscribe(tag_ids=[2])
+        original = [reading(10), reading(20, 2)]
+        for value in [float('nan'), float('inf'), float('-inf')]:
+            with self.subTest(value=value):
+                await self.refresh(*original)
+                await self.next_event(events)
+                await self.next_event(filtered)
+                invalid = reading(11).model_copy(update={'value': value})
+                with self.assertLogs(telemetry_stream.logger, level="WARNING"):
+                    await self.refresh(invalid, reading(21, 2))
+                for subscriber in [events, filtered]:
+                    event = await self.next_event(subscriber)
+                    self.assertEqual(event.event, "status")
+                    self.assertEqual(event.data, {"status": "unavailable"})
+
+                # Repeated failures keep the subscription open without flooding it.
+                pending = asyncio.create_task(anext(events))
+                await self.refresh(invalid, reading(22, 2))
+                await asyncio.sleep(0)
+                self.assertFalse(pending.done())
+
+                # Even unchanged values must recover via a full snapshot, not a delta.
+                await self.refresh(*original)
+                event = await asyncio.wait_for(pending, timeout=1)
+                self.assertEqual(event.event, "snapshot")
+                self.assertEqual(event.data.readings, original)
+                event = await self.next_event(filtered)
+                self.assertEqual(event.event, "snapshot")
+                self.assertEqual(event.data.readings, [original[1]])
+                # Reset subscribers for the next non-finite input.
+                await events.aclose()
+                await filtered.aclose()
+                events = self.subscribe()
+                filtered = self.subscribe(tag_ids=[2])
+
+    async def test_invalid_initial_poll_recovers_on_the_same_subscription(self):
+        events = self.subscribe()
+        invalid = reading(10).model_copy(update={'value': float('nan')})
+        with self.assertLogs(telemetry_stream.logger, level="WARNING"):
+            await self.refresh(invalid)
+        event = await self.next_event(events)
+        self.assertEqual(event.event, "status")
+        self.assertEqual(event.data, {"status": "unavailable"})
+        await self.refresh(reading(11), reading(20, 2))
+        event = await self.next_event(events)
+        self.assertEqual(event.event, "snapshot")
+        self.assertEqual([r.id for r in event.data.readings], [11, 20])
+
     async def test_reconnect_gets_current_snapshot(self):
         events = self.subscribe()
         await self.refresh(reading(10))

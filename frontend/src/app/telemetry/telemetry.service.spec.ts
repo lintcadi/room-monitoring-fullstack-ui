@@ -86,12 +86,15 @@ describe('TelemetryService', () => {
 
   it('distinguishes backend unavailability from a connected stream and recovers', () => {
     const source = start();
-    source.emit('snapshot', { readings: [reading(1, 26.7)] });
+    source.emit('snapshot', { readings: [reading(1, 26.7), reading(2, 41.1)] });
     source.emit('status', { status: 'unavailable' });
     expect(service.connection()).toBe('unavailable');
-    expect(service.readings().get(1)?.value).toBe(26.7);
-    source.emit('snapshot', { readings: [reading(1, 27)] });
+    expect(service.tagViews().map((tag) => tag.reading?.value)).toEqual([26.7, 41.1]);
+    expect(source.close).not.toHaveBeenCalled();
+    source.emit('snapshot', { readings: [reading(1, 27), reading(2, 42)] });
     expect(service.connection()).toBe('live');
+    expect(service.tagViews().map((tag) => tag.reading?.value)).toEqual([27, 42]);
+    expect(factory).toHaveBeenCalledOnce();
   });
 
   it('accepts an empty snapshot without inventing zero-valued readings', () => {

@@ -166,6 +166,12 @@ On database recovery, a fresh snapshot restores the client's state. A snapshot
 also replaces state when a selected tag disappears. Reconnecting starts a new
 snapshot; this endpoint does not replay missed readings or accept history cursors.
 
+All tags belong to one sensor. If any latest value is NaN or infinite, the entire
+live feed reports unavailable, including clients filtered to other tags. The
+connection and polling stay active, and clients retain their last valid readings.
+Once all latest values are finite again, a full snapshot restores live updates
+automatically. Recorded quality codes remain separate from this numeric check.
+
 The service keeps only its latest snapshot. Slow clients compare that state
 with their own last event, so updates to different tags remain represented
 without accumulating an unbounded queue. Intermediate measurements may be skipped;
