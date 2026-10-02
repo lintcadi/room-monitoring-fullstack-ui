@@ -241,51 +241,6 @@
   .thermometer {
     display: none;
   }
-  .temperature,
-  .humidity {
-    display: grid;
-    grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
-    grid-template-rows: auto 1fr auto;
-  }
-  .temperature .card-heading,
-  .humidity .card-heading {
-    grid-column: 1 / -1;
-  }
-  .temperature .feature-body,
-  .humidity .feature-body {
-    grid-column: 2;
-    grid-row: 2;
-    justify-items: end;
-    align-items: end;
-  }
-  .temperature .card-footer,
-  .humidity .card-footer {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: end;
-    white-space: nowrap;
-  }
-  .temperature .context,
-  .humidity .context {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    text-align: left;
-  }
-  .humidity .gauge-display {
-    height: auto;
-    width: auto;
-    max-width: none;
-  }
-  .humidity .gauge-display .measurement {
-    position: static;
-    font-size: 24px;
-  }
-  .temperature .measurement {
-    font-size: 26px;
-  }
-  .humidity app-telemetry-gauge {
-    display: none;
-  }
   .iaq .measurement {
     font-size: 30px;
   }
@@ -385,6 +340,7 @@
 
 .reading-surface {
   height: 100%;
+  container-type: size;
   border: 0;
   background: transparent;
 }
@@ -394,6 +350,56 @@
   position: relative;
   overflow: hidden;
   color: var(--text);
+}
+
+/* Browser chrome and notices can shorten the card even on a tall phone. */
+@media (max-width: 700px) {
+  @container (max-height: 160px) {
+    .humidity,
+    .temperature {
+      display: grid;
+      grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
+      grid-template-rows: auto 1fr auto;
+    }
+    :is(.humidity, .temperature) .card-heading {
+      grid-column: 1 / -1;
+    }
+    :is(.humidity, .temperature) .feature-body {
+      grid-column: 2;
+      grid-row: 2;
+      justify-items: end;
+      align-items: end;
+    }
+    :is(.humidity, .temperature) .card-footer {
+      grid-column: 1;
+      grid-row: 2;
+      align-self: end;
+      white-space: nowrap;
+      padding-top: 0;
+      border-top: 0;
+    }
+    :is(.humidity, .temperature) .context {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      text-align: left;
+    }
+    .humidity .gauge-display {
+      height: auto;
+      width: auto;
+      max-width: none;
+    }
+    .humidity .gauge-display .measurement {
+      position: static;
+      font-size: 24px;
+    }
+    .temperature .measurement {
+      font-size: 26px;
+    }
+    .humidity app-telemetry-gauge,
+    .temperature .thermometer {
+      display: none;
+    }
+  }
 }
 
 /* Keep value classifications visible in compact landscape cards. */
