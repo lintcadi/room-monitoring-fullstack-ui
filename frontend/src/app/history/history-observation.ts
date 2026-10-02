@@ -12,6 +12,7 @@ import { HistoryRow, bucketOf, rowQuality, rowTimestamp } from './history.models
 @Component({
   selector: 'app-history-observation',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[class.compact]': 'compact() && !bucket()' },
   template: `
     @if (bucket(); as b) {
       <time>{{ observedTime(b.coverage_start) }} → {{ observedTime(b.coverage_end) }}</time>
@@ -66,9 +67,22 @@ import { HistoryRow, bucketOf, rowQuality, rowTimestamp } from './history.models
       font-size: 1rem;
       font-weight: 500;
     }
+    :host(.compact) {
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      column-gap: 12px;
+    }
+    :host(.compact) time {
+      grid-column: 1 / -1;
+    }
+    :host(.compact) .badge {
+      padding: 3px 6px;
+      font-size: 0.6rem;
+    }
   `,
 })
 export class HistoryObservation {
+  readonly compact = input(false);
   readonly row = input.required<HistoryRow>();
   readonly tag = input.required<TelemetryTag>();
   protected readonly bucket = computed(() => bucketOf(this.row()));

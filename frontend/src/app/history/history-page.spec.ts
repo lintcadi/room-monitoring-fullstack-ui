@@ -26,6 +26,9 @@ vi.mock('apexcharts/client', () => ({
       return Promise.resolve(this);
     }
     zoomX() {}
+    removeAnnotation() {}
+    addXaxisAnnotation() {}
+    addPointAnnotation() {}
   },
 }));
 

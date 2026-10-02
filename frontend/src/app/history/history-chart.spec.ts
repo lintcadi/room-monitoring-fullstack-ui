@@ -3,7 +3,8 @@ import { By } from '@angular/platform-browser';
 import { ChartComponent } from 'ng-apexcharts';
 import { HistoryChart } from './history-chart';
 import { TelemetryReading } from '../telemetry/telemetry.models';
-import { initialRange, qualitySeries, readingTime, nearestReadingIndex } from './history-apex';
+import { queryRange, qualitySeries, readingTime, nearestReadingIndex } from './history-apex';
+import { HistoryBucket } from './history.models';
 
 // SVG layout and native gestures are verified in a real browser, not jsdom.
 vi.mock('apexcharts/client', () => ({
@@ -16,6 +17,9 @@ vi.mock('apexcharts/client', () => ({
       return Promise.resolve(this);
     }
     zoomX() {}
+    removeAnnotation() {}
+    addXaxisAnnotation() {}
+    addPointAnnotation() {}
   },
 }));
 const query = { tagIds: [1], start: '2026-09-26T00:00:00Z', end: '2026-09-27T00:00:00Z' };
@@ -62,16 +66,37 @@ describe('ApexCharts history integration', () => {
     vi.unstubAllGlobals();
   });
 
-  it('passes the first 100 readings as the initial datetime viewport and enables native navigation', () => {
-    expect(options().xaxis.min).toBe(readingTime(rows(300)[0]));
-    expect(options().xaxis.max).toBe(readingTime(rows(300)[99]));
+  it('opens the selected time range and allows navigation even with fewer than 100 readings', () => {
+    expect(options().xaxis).toMatchObject(queryRange(query));
     expect(options().chart.toolbar?.autoSelected).toBe('pan');
     expect(options().chart.zoom?.enabled).toBe(true);
-    expect(el.querySelector('.window-caption')?.textContent).toContain('100 / 300');
-    setRows(rows(100));
+    expect(el.querySelector('.window-caption')?.textContent).toContain('300 / 300');
+    expect(el.querySelector('.chart-toolbar')?.textContent).toContain('Reset view');
+    setRows(rows(2));
+    expect(options().xaxis).toMatchObject(queryRange(query));
+    expect(options().chart.zoom?.enabled).toBe(true);
+    expect(options().chart.toolbar?.show).toBe(true);
+    setRows(rows(1));
     expect(options().chart.zoom?.enabled).toBe(false);
     expect(options().chart.toolbar?.show).toBe(false);
-    expect(el.querySelector('.chart-navigation')).toBeNull();
+    expect(el.querySelector('.chart-toolbar')?.textContent).not.toContain('Reset view');
+  });
+
+  it('hides normal markers but keeps isolated good readings and quality exceptions visible', () => {
+    const data = rows(5).map((row, i) => ({ ...row, quality: [0, 0, 2, 0, 1][i] }));
+    setRows(data);
+    const markers = fixture.componentInstance['markers']();
+    expect(markers.size).toEqual([0, 5, 5, 5]);
+    expect(markers.discrete).toEqual([
+      { seriesIndex: 0, dataPointIndex: 3, size: 4, shape: 'circle' },
+    ]);
+    expect(options().series[0].data).toEqual(
+      data.map((row) => ({ x: readingTime(row), y: row.quality === 0 ? row.value : null })),
+    );
+    setRows([{ ...data[0], value: 0 }]);
+    expect(fixture.componentInstance['markers']().discrete).toEqual([
+      { seriesIndex: 0, dataPointIndex: 0, size: 4, shape: 'circle' },
+    ]);
   });
 
   it('keeps quality gaps, markers, raw timestamps, and unit conversion in the series', () => {
@@ -96,15 +121,21 @@ describe('ApexCharts history integration', () => {
     expect(options()).toBe(previousOptions);
     setRows(data);
     expect(options().xaxis).toMatchObject(range);
-    fixture.componentRef.setInput('query', { ...query, end: '2026-09-28T00:00:00Z' });
+    const changedQuery = { ...query, end: '2026-09-28T00:00:00Z' };
+    fixture.componentRef.setInput('query', changedQuery);
     fixture.detectChanges();
-    expect(options().xaxis).toMatchObject(initialRange(data, query));
+    expect(options().xaxis).toMatchObject(queryRange(changedQuery));
   });
 
-  it('uses the Apex API for Fit all and reset, including appended data', () => {
+  it('resets a zoomed chart to the selected range and keeps that range across pagination', () => {
     const zoom = vi.spyOn(chart(), 'zoomX');
+    options().chart.events!.zoomed!(chart().chartInstance()!, {
+      xaxis: { min: readingTime(rows(300)[50]), max: readingTime(rows(300)[99]) },
+    });
+    fixture.detectChanges();
+    expect(el.querySelector('.window-caption')?.textContent).toContain('50 / 300');
     Array.from(el.querySelectorAll('button'))
-      .find((b) => b.textContent?.trim() === 'Fit all')!
+      .find((b) => b.textContent?.trim() === 'Reset view')!
       .click();
     fixture.detectChanges();
     expect(zoom).toHaveBeenCalledWith(Date.parse(query.start), Date.parse(query.end));
@@ -114,9 +145,6 @@ describe('ApexCharts history integration', () => {
       max: Date.parse(query.end),
     });
     expect(el.querySelector('.window-caption')?.textContent).toContain('400 / 400');
-    el.querySelector<HTMLButtonElement>('[aria-label="Reset zoom to 100 readings"]')!.click();
-    fixture.detectChanges();
-    expect(el.querySelector('.window-caption')?.textContent).toContain('100 / 400');
   });
 
   it('compares mixed units without merging timestamps, units, or quality', () => {
@@ -146,17 +174,9 @@ describe('ApexCharts history integration', () => {
     expect(options().series[1].data[1]).toEqual({ x: readingTime(temperature[1]), y: 50 });
     expect(options().series[4].data[0]).toEqual({ x: readingTime(humidRows[0]), y: 0 });
     expect(el.textContent).toContain('Relative range');
-    fixture.componentInstance['hover'].set({
-      row: temperature[1],
-      x: 100,
-      y: 100,
-      left: 0,
-      top: 0,
-      width: 300,
-      height: 200,
-    });
+    fixture.componentInstance['selectedKey'].set(String(temperature[1].id));
     fixture.detectChanges();
-    const inspected = fixture.componentInstance['hoverReadings']();
+    const inspected = fixture.componentInstance['selectedReadings']();
     expect(inspected[0].row).toEqual(temperature[1]);
     expect(inspected[0].value).toBe('25.0');
     expect(inspected[0].unit).toBe('°C');
@@ -184,11 +204,144 @@ describe('ApexCharts history integration', () => {
     expect(options().xaxis.labels!.formatter!('', Date.parse(query.start), {} as never)).toBe(
       '08:00:00',
     );
-    const range = initialRange(
-      rows(200).map((row) => ({ ...row, observed_at: query.start })),
-      query,
+    setRows(rows(200).map((row) => ({ ...row, observed_at: query.start })));
+    expect(options().xaxis).toMatchObject(queryRange(query));
+  });
+
+  function prepareInspection(): void {
+    fixture.componentRef.setInput('query', {
+      ...query,
+      end: new Date(Date.parse(query.start) + 1000).toISOString(),
+    });
+    setRows(rows(4));
+    const grid = document.createElement('div');
+    grid.className = 'apexcharts-grid';
+    grid.getBoundingClientRect = () => new DOMRect(100, 100, 400, 200);
+    el.querySelector('.chart-canvas')!.append(grid);
+  }
+
+  function pointer(type: string, x: number, overrides: PointerEventInit = {}): PointerEvent {
+    return new PointerEvent(type, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: x,
+      clientY: 200,
+      ...overrides,
+    });
+  }
+
+  it('keeps tapped details below the plot and delegates the highlight to Apex', () => {
+    prepareInspection();
+    const annotation = vi.spyOn(chart(), 'addPointAnnotation');
+    const instance = fixture.componentInstance;
+    instance['beginPointer'](pointer('pointerdown', 260));
+    instance['endPointer'](pointer('pointerup', 260));
+    fixture.detectChanges();
+    expect(instance['selected']()).toMatchObject({ id: 3 });
+    options().chart.events!.scrolled!(chart().chartInstance()!, {
+      xaxis: instance['range'](),
+    });
+    expect(instance['selected']()).toMatchObject({ id: 3 });
+    expect(el.querySelector('.inspection-panel')?.textContent).toContain('Data: Bad');
+    expect(el.querySelector('.chart-canvas .inspection-panel')).toBeNull();
+    expect(el.querySelector('.reading-tooltip')).toBeNull();
+    expect(annotation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        x: readingTime(rows(4)[2]),
+        y: 2,
+      }),
+      false,
     );
-    expect(range.max - range.min).toBe(1);
+    el.querySelector('.chart-canvas')!.dispatchEvent(new PointerEvent('pointerleave'));
+    expect(instance['selected']()).toMatchObject({ id: 3 });
+    el.querySelector<HTMLButtonElement>('[aria-label="Clear selected reading"]')!.click();
+    fixture.detectChanges();
+    expect(instance['selected']()).toBeNull();
+  });
+
+  it('does not treat a drag, a multi-touch gesture, or a cancelled touch as a tap', () => {
+    prepareInspection();
+    const instance = fixture.componentInstance;
+    instance['beginPointer'](pointer('pointerdown', 140));
+    instance['movePointer'](pointer('pointermove', 260));
+    instance['endPointer'](pointer('pointerup', 260));
+    expect(instance['selected']()).toBeNull();
+    instance['beginPointer'](pointer('pointerdown', 140));
+    instance['beginPointer'](pointer('pointerdown', 260, { pointerId: 2, isPrimary: false }));
+    instance['endPointer'](pointer('pointerup', 140));
+    expect(instance['selected']()).toBeNull();
+    instance['beginPointer'](pointer('pointerdown', 140));
+    instance['cancelPointer']();
+    instance['endPointer'](pointer('pointerup', 140));
+    expect(instance['selected']()).toBeNull();
+  });
+
+  it('selects by horizontal time on hover and leaves zoom and pan shortcuts native', () => {
+    prepareInspection();
+    const instance = fixture.componentInstance;
+    instance['movePointer'](pointer('pointermove', 260, { pointerType: 'mouse', clientY: 110 }));
+    expect(instance['selected']()).toMatchObject({ id: 3 });
+    instance['movePointer'](pointer('pointermove', 260, { pointerType: 'mouse', clientY: 290 }));
+    expect(instance['selected']()).toMatchObject({ id: 3 });
+    instance['clearSelection']();
+    const next = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true });
+    instance['inspectKey'](next);
+    expect(next.defaultPrevented).toBe(true);
+    expect(instance['selected']()).toMatchObject({ id: 1 });
+    instance['inspectKey'](new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    expect(instance['selected']()).toMatchObject({ id: 2 });
+    const pan = new KeyboardEvent('keydown', {
+      key: 'ArrowRight',
+      shiftKey: true,
+      cancelable: true,
+    });
+    instance['inspectKey'](pan);
+    expect(pan.defaultPrevented).toBe(false);
+    expect(instance['selected']()).toMatchObject({ id: 2 });
+    instance['inspectKey'](new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(instance['selected']()).toBeNull();
+  });
+
+  it('inspects aggregate intervals without borrowing a reading across an empty interval', () => {
+    prepareInspection();
+    const bucket = (from: number, to: number): HistoryBucket => ({
+      tag_id: 1,
+      tag_key: 'temperature_c',
+      bucket_start: new Date(Date.parse(query.start) + from).toISOString(),
+      bucket_end: new Date(Date.parse(query.start) + to).toISOString(),
+      coverage_start: new Date(Date.parse(query.start) + from).toISOString(),
+      coverage_end: new Date(Date.parse(query.start) + to).toISOString(),
+      partial: false,
+      method: 'average',
+      value: 25,
+      minimum: 24,
+      maximum: 26,
+      sample_count: 2,
+      good_count: 2,
+      uncertain_count: 0,
+      bad_count: 0,
+      unknown_count: 0,
+      usable_count: 2,
+      last_observed_at: new Date(Date.parse(query.start) + to - 1).toISOString(),
+      last_quality: 0,
+    });
+    fixture.componentRef.setInput('query', {
+      ...query,
+      aggregation: '5min',
+      end: new Date(Date.parse(query.start) + 1000).toISOString(),
+    });
+    fixture.componentRef.setInput('readings', [bucket(0, 300), bucket(600, 1000)]);
+    fixture.detectChanges();
+    const instance = fixture.componentInstance;
+    instance['beginPointer'](pointer('pointerdown', 180));
+    instance['endPointer'](pointer('pointerup', 180));
+    fixture.detectChanges();
+    expect(instance['selected']()).toMatchObject({ coverage_start: bucket(0, 300).coverage_start });
+    expect(el.querySelector('.inspection-panel')?.textContent).toContain('Average');
+    instance['beginPointer'](pointer('pointerdown', 280));
+    instance['endPointer'](pointer('pointerup', 280));
+    expect(instance['selected']()).toBeNull();
   });
 });
 

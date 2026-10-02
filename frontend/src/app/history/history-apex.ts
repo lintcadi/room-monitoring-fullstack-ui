@@ -48,12 +48,6 @@ export function nearestReadingIndex(rows: HistoryRow[], time: number, range: Cha
   );
 }
 
-export function initialRange(rows: HistoryRow[], query: HistoryQuery): ChartRange {
-  if (rows.length <= 100) return queryRange(query);
-  const min = readingTime(rows[0]);
-  return { min, max: Math.max(min + 1, readingTime(rows[99])) };
-}
-
 // Keep timestamps aligned across the four quality series for each measurement.
 // Nulls explicitly break the good line; non-good data is rendered as markers only.
 export function qualitySeries(

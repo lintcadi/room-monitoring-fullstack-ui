@@ -163,7 +163,7 @@ one-hour range automatically.
   `tag_ids` parameters, initially up to 1,000 readings total. **Load more** passes
   the returned cursor with the same tag IDs and range. At least one measurement
   must be selected to apply filters. The 5,000-reading limit is shared across all selections.
-- **Fit all** spans the requested interval. **Partial range** means more
+- **Reset view** restores the requested interval. **Partial range** means more
   pages remain; summary values describe only the loaded readings. At 5,000
   readings, choose a narrower range to keep browser rendering bounded.
 - Numeric measurements use time-positioned lines; status flags and IAQ accuracy
@@ -222,7 +222,7 @@ null values. Hovering a bucket inspects its interval rather than borrowing a
 neighboring value across a gap. Aggregated points have no fabricated reading IDs
 or aggregate quality code: the UI keeps source quality counts separate.
 
-The initial chart window and reset use about 100 buckets in aggregated mode.
+The initial chart window and **Reset view** span the selected time range in aggregated mode.
 The 5,000-item display limit counts buckets across all selected tags, not source
 observations. Summary cards distinguish loaded buckets from underlying sample
 counts. Refresh and Load more retain the applied aggregation; changing it and
@@ -230,18 +230,18 @@ clicking Apply resets the cursor and chart. Table capacity adapts to the height
 of the displayed rows so bucket details fit on smaller screens.
 
 History charts use **ApexCharts** through the standalone `ng-apexcharts` component.
-The library handles SVG rendering, axes, tooltips, native zoom/pan, keyboard
-navigation and touch gestures. A small app overlay selects tooltip readings by
-timestamp so sparse quality series do not change the selected time with pointer height. It loads only when the History chart is opened.
+The library handles SVG rendering, axes, selection annotations, native zoom/pan,
+and touch gestures. The app selects readings by timestamp to preserve independently
+timed measurements and gaps between aggregated intervals. It loads only when the
+History chart is opened.
 
-The initial view contains the first **100 readings (100%)**. With 100 or fewer
-readings, the full requested time range is shown and navigation controls are hidden.
+The initial view spans the **full selected time range**, showing the readings loaded
+so far. Navigation controls are available when more than one reading is loaded.
 Use the Apex toolbar’s +/− buttons, scroll wheel or pinch gesture to zoom. Pan mode
 is selected initially; drag horizontally to move through time. The magnifier tool
-switches to rectangle zoom. The percentage button resets to the first 100 readings;
-**Fit all** shows all loaded data across the requested interval. Percentage is
-based on the number of visible readings, so it varies with irregular sampling.
-Readings with identical timestamps stay together, including at the 100-reading boundary.
+switches to rectangle zoom. **Reset view** restores the selected time range after
+zooming or panning; it does not fetch additional data. Use **Load more** when pages
+remain. There is no reading-count-based zoom percentage.
 
 The horizontal axis uses actual timestamps formatted in Asia/Taipei. For a single
 measurement or measurements with matching units, the vertical axis uses actual values. Comparisons with different units or different status definitions
@@ -250,26 +250,36 @@ use a clearly labeled relative scale: 0% is each measurement’s loaded minimum 
 variation, not quality, health, or a percentage change. Scales include all qualities
 and stay stable during pan/zoom; loading another page can extend them. Each quality
 has its own series: good data is connected with gaps at non-good readings; other qualities use markers without connecting
-lines. Status tags use steps. Move horizontally anywhere inside the plot to inspect
-the nearest timestamp; pointer height does not affect selection. A vertical dashed
-guide marks the selected time, a horizontal guide marks its value, and one tooltip
-shows actual values, units and data quality. The tooltip follows the focused dot,
-flips to its left when needed, and stays inside the chart edges. In comparisons, it finds the nearest
-loaded observation for each measurement inside the visible time window and shows
-each timestamp separately; it does not interpolate or assume synchronized updates.
-Colors identify measurements and marker shapes identify quality. The measurement
-legend scrolls horizontally if needed, and longer comparison tooltips scroll
-within the plot. The Readings table includes a measurement column; comparison
-summaries show counts instead of combining minima and maxima across units.
-On short screens, these comparison summary cards are hidden to give the plot more
-room. You can also focus the chart and use native arrow-key navigation (+/− zoom, Shift+←/→ pan).
+lines. Connected good-quality readings have no persistent point markers; isolated
+good readings retain a small marker so they remain visible between gaps. Inspecting
+a reading highlights its position. Status tags use steps.
+
+Tap the plot on touch devices, hover with a mouse, or focus the chart and use
+Left/Right/Home/End to inspect readings. Selection depends on horizontal time,
+not pointer height. A stationary tap keeps its selection after release; dragging
+or pinching remains a native pan/zoom gesture. Native +/− zoom and Shift+Left/Right
+pan shortcuts remain available. Escape or **Clear** dismisses selection.
+
+Reading details stay in a fixed-height, scrollable panel below the plot on every
+device. Opening details does not cover or resize the plot. ApexCharts draws the
+selected time guide and point marker; there is no floating tooltip, manual tooltip
+positioning, or custom horizontal crosshair. In comparisons, each measurement keeps
+its own nearest timestamp and original unit. Missing aggregate intervals show no
+reading rather than borrowing a neighboring bucket.
+
+**Legend** expands the quality key. Measurement colors remain visible in a compact,
+horizontally scrolling legend for comparisons, including the relative-scale label
+when units differ. On phones and tablets, **Summary** reveals the loaded-data counts
+and statistics on demand. The plot retains a minimum usable height; shorter screens
+can scroll the page instead of squeezing the plot and its controls together.
 
 Zoom and pan make no backend requests. **Load more** extends the available data
 without moving the current time window. Applying filters or refreshing resets the
 chart. Switching from Readings back to Chart also starts a new view. Summary cards
 always describe all loaded readings, while the chart caption counts visible readings.
 
-Live and History use viewport-fitting layouts, with a denser layout on small screens.
+Live fits the viewport. History uses a compact layout on small screens and allows
+page scrolling when necessary to keep the chart and its details readable.
 Live gauges remain custom SVG. There are no simulated telemetry readings.
 
 ApexCharts is distributed under [Community/commercial licensing](https://apexcharts.com/license/).

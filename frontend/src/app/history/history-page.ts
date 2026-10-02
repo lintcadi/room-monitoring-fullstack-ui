@@ -104,6 +104,7 @@ export class HistoryPage implements OnInit, OnDestroy {
     return tags.length === 1 ? tags[0].name : `${tags.length} measurements`;
   });
   protected readonly view = signal<'chart' | 'table'>('chart');
+  protected readonly summaryExpanded = signal(false);
   protected readonly maxReadings = MAX_READINGS;
   protected readonly unit = computed(() => {
     const tag = this.history.tag();

@@ -4,7 +4,6 @@ import {
   DestroyRef,
   ElementRef,
   afterNextRender,
-  afterRenderEffect,
   computed,
   effect,
   inject,
@@ -35,7 +34,6 @@ import {
 } from './history.models';
 import {
   ChartRange,
-  initialRange,
   qualitySeries,
   queryRange,
   readingTime,
@@ -58,7 +56,6 @@ export class HistoryChart {
   readonly readings = input.required<HistoryRow[]>();
   readonly tags = input.required<TelemetryTag[]>();
   protected readonly aggregated = computed(() => (this.query().aggregation ?? 'raw') !== 'raw');
-  protected readonly rowKey = rowKey;
   protected readonly multiple = computed(() => this.tags().length > 1);
   protected readonly relative = computed(
     () =>
@@ -84,24 +81,19 @@ export class HistoryChart {
   readonly query = input.required<HistoryQuery>();
   private readonly destroyRef = inject(DestroyRef);
   private readonly canvas = viewChild.required<ElementRef<HTMLDivElement>>('canvas');
-  private readonly tooltip = viewChild<ElementRef<HTMLDivElement>>('tooltip');
   private readonly chart = viewChild(ChartComponent);
   private readonly size = signal({ width: 900, height: 300 });
   private readonly viewport = signal<ChartRange | null>(null);
-  private fit = false;
-  protected readonly hover = signal<{
-    row: HistoryRow;
-    x: number;
-    y: number;
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
-  protected readonly hoverReadings = computed(() => {
-    const focus = this.hover();
+  protected readonly showLegend = signal(false);
+  private readonly selectedKey = signal<string | null>(null);
+  protected readonly selected = computed(
+    () => this.ordered().find((row) => rowKey(row) === this.selectedKey()) ?? null,
+  );
+  private tapStart: { id: number; x: number; y: number } | null = null;
+  protected readonly selectedReadings = computed(() => {
+    const focus = this.selected();
     if (!focus) return [];
-    const time = readingTime(focus.row);
+    const time = readingTime(focus);
     return this.measurements().map(({ tag, rows, color }) => {
       const index = nearestReadingIndex(rows, time, this.range());
       const row = this.aggregated()
@@ -109,13 +101,7 @@ export class HistoryChart {
         : index < 0
           ? undefined
           : rows[index];
-      return {
-        tag,
-        row,
-        color,
-        value: formatValue(tag, row?.value),
-        unit: displayUnit(tag),
-      };
+      return { tag, row, color, value: formatValue(tag, row?.value), unit: displayUnit(tag) };
     });
   });
   protected readonly ordered = computed(() =>
@@ -125,17 +111,12 @@ export class HistoryChart {
         rowKey(a).localeCompare(rowKey(b), undefined, { numeric: true }),
     ),
   );
-  protected readonly navigable = computed(() => this.ordered().length > 100);
-  protected readonly range = computed(
-    () => this.viewport() ?? initialRange(this.ordered(), this.query()),
-  );
+  protected readonly navigable = computed(() => this.ordered().length > 1);
+  protected readonly range = computed(() => this.viewport() ?? queryRange(this.query()));
   protected readonly visible = computed(() =>
     this.ordered().filter(
       (row) => readingTime(row) >= this.range().min && readingTime(row) <= this.range().max,
     ),
-  );
-  protected readonly zoomLabel = computed(() =>
-    this.visible().length ? Math.round(10000 / this.visible().length) + '%' : 'No readings',
   );
   protected readonly hasUnknownQuality = computed(() =>
     this.ordered().some((row) => row.value !== null && ![0, 1, 2].includes(rowQuality(row))),
@@ -153,16 +134,31 @@ export class HistoryChart {
     padding: { left: 0, right: 12, top: 0, bottom: 0 },
   };
   protected readonly markers = computed<ApexMarkers>(() => ({
-    size: this.tags().flatMap(() => [5, 6, 6, 6]),
+    size: this.tags().flatMap(() => [0, 5, 5, 5]),
     shape: this.tags().flatMap(() => ['circle', 'diamond', 'cross', 'square'] as const),
     strokeWidth: 1,
     hover: { sizeOffset: 3 },
     showNullDataPoints: false,
+    // A good observation with no line segment would otherwise disappear.
+    discrete: this.options().series.flatMap((series, seriesIndex) => {
+      if (seriesIndex % 4 !== 0) return [];
+      const points = series.data as { x: number; y: number | null }[];
+      return points.flatMap((point, dataPointIndex) =>
+        point.y !== null &&
+        points[dataPointIndex - 1]?.y == null &&
+        points[dataPointIndex + 1]?.y == null
+          ? [{ seriesIndex, dataPointIndex, size: 4, shape: 'circle' as const }]
+          : [],
+      );
+    }),
   }));
   private recordRange(range: ChartRange): void {
+    // Apex emits a scroll event even for a stationary touch release.
+    // Keep the tapped reading unless the visible time range actually changed.
+    const current = this.range();
+    if (range.min === current.min && range.max === current.max) return;
     this.viewport.set(range);
-    this.hover.set(null);
-    this.fit = false;
+    this.selectedKey.set(null);
   }
   // Rebuild only for new data, query or layout. Native zoom/pan changes the caption,
   // not these inputs, so Angular doesn't recreate the chart during an interaction.
@@ -173,9 +169,7 @@ export class HistoryChart {
     const query = this.query();
     const size = this.size();
     const bounds = queryRange(query);
-    const range = untracked(() =>
-      this.fit ? bounds : (this.viewport() ?? initialRange(rows, query)),
-    );
+    const range = untracked(() => this.viewport() ?? bounds);
     const chart: ApexChart = {
       type: 'line',
       height: size.height,
@@ -187,7 +181,7 @@ export class HistoryChart {
       redrawOnParentResize: false,
       redrawOnWindowResize: false,
       toolbar: {
-        show: rows.length > 100,
+        show: rows.length > 1,
         autoSelected: 'pan',
         tools: {
           download: false,
@@ -200,14 +194,14 @@ export class HistoryChart {
         },
       },
       zoom: {
-        enabled: rows.length > 100,
+        enabled: rows.length > 1,
         type: 'x',
         allowMouseWheelZoom: true,
         pinch: true,
         resetControl: false,
       },
       events: {
-        mouseMove: (event) => this.inspect(event),
+        updated: () => this.renderSelection(),
         zoomed: (_ctx, options) => {
           if (options) this.recordRange(options.xaxis);
         },
@@ -280,8 +274,8 @@ export class HistoryChart {
               Array(4).fill(STATUS_KEYS.includes(tag.tag_key) ? 'stepline' : 'straight'),
             ),
     };
-    // App tooltip selects by time only; Apex's sparse quality-series hit testing
-    // can choose a different timestamp depending on the pointer's vertical position.
+    // Details live below the plot. Time-based selection preserves irregular
+    // timestamps and bucket gaps instead of relying on quality-series hit testing.
     const tooltip: ApexTooltip = { enabled: false };
     const series = this.measurements().flatMap(({ tag, rows, scale }) =>
       qualitySeries(rows, tag, relative ? scale.normalize : undefined).map((series) => ({
@@ -296,42 +290,11 @@ export class HistoryChart {
     effect(() => {
       this.query();
       this.viewport.set(null);
-      this.hover.set(null);
-      this.fit = false;
+      this.selectedKey.set(null);
     });
-    afterRenderEffect({
-      earlyRead: () => {
-        const focus = this.hover();
-        const element = this.tooltip()?.nativeElement;
-        if (!focus || !element) return null;
-
-        // Measure rendered content, which varies with measurement count and aggregation.
-        const box = element.getBoundingClientRect();
-        const canvas = this.canvas().nativeElement.getBoundingClientRect();
-        const margin = 8;
-        const gap = 14;
-        const right = focus.x + gap;
-        const left = focus.x - gap - box.width;
-        const preferredX = right + box.width <= canvas.width - margin ? right : left;
-        return {
-          element,
-          x: Math.max(margin, Math.min(preferredX, canvas.width - box.width - margin)),
-          y: Math.max(
-            margin,
-            Math.min(focus.y - box.height / 2, canvas.height - box.height - margin),
-          ),
-          scrollable: element.scrollHeight > element.clientHeight + 1,
-        };
-      },
-      write: (position) => {
-        const measured = position();
-        if (!measured) return;
-        const { element, x, y, scrollable } = measured;
-        element.style.left = `${x}px`;
-        element.style.top = `${y}px`;
-        element.style.visibility = 'visible';
-        element.classList.toggle('scrollable', scrollable);
-      },
+    effect(() => {
+      this.selected();
+      untracked(() => this.renderSelection());
     });
     afterNextRender(() => {
       const observer = new ResizeObserver((entries) => {
@@ -342,83 +305,114 @@ export class HistoryChart {
           height > 0 &&
           (next.width !== this.size().width || next.height !== this.size().height)
         ) {
-          this.hover.set(null);
           this.size.set(next);
         }
       });
-      observer.observe(this.canvas().nativeElement);
-      this.destroyRef.onDestroy(() => observer.disconnect());
+      const canvas = this.canvas().nativeElement;
+      observer.observe(canvas);
+      // Handle reading selection before Apex's SVG handler; its zoom/pan keys
+      // remain native. This avoids navigating twice through the quality series.
+      const keydown = (event: KeyboardEvent) => this.inspectKey(event);
+      canvas.addEventListener('keydown', keydown, true);
+      this.destroyRef.onDestroy(() => {
+        observer.disconnect();
+        canvas.removeEventListener('keydown', keydown, true);
+      });
     });
   }
 
-  protected inspect(event: MouseEvent): void {
-    const canvas = this.canvas().nativeElement;
-    const grid = canvas.querySelector('.apexcharts-grid')?.getBoundingClientRect();
+  protected beginPointer(event: PointerEvent): void {
+    this.tapStart = event.isPrimary
+      ? { id: event.pointerId, x: event.clientX, y: event.clientY }
+      : null;
+  }
+
+  protected movePointer(event: PointerEvent): void {
     if (
-      !grid ||
-      !grid.width ||
+      this.tapStart &&
+      Math.hypot(event.clientX - this.tapStart.x, event.clientY - this.tapStart.y) > 8
+    ) {
+      this.tapStart = null;
+    }
+    if (event.pointerType === 'mouse' && !event.buttons) this.inspect(event);
+  }
+
+  protected endPointer(event: PointerEvent): void {
+    if (this.tapStart?.id === event.pointerId) this.inspect(event);
+    this.tapStart = null;
+  }
+
+  protected cancelPointer(): void {
+    this.tapStart = null;
+  }
+
+  private inspect(event: MouseEvent): void {
+    const target = event.target as Element | null;
+    if (target?.closest('.apexcharts-toolbar')) return;
+    const grid = this.canvas()
+      .nativeElement.querySelector('.apexcharts-grid')
+      ?.getBoundingClientRect();
+    if (
+      !grid?.width ||
       !grid.height ||
-      event.buttons ||
       event.clientX < grid.left ||
       event.clientX > grid.right ||
       event.clientY < grid.top ||
       event.clientY > grid.bottom
-    ) {
-      this.hover.set(null);
+    )
       return;
-    }
     const range = this.range();
     const time = range.min + ((event.clientX - grid.left) / grid.width) * (range.max - range.min);
     const rows = this.ordered();
-    const index = nearestReadingIndex(rows, time, range);
-    const row = this.aggregated() ? bucketAtTime(rows, time) : rows[index];
-    if (!row) {
-      this.hover.set(null);
-      return;
-    }
-    this.focusReading(row, grid);
+    const row = this.aggregated()
+      ? bucketAtTime(rows, time)
+      : rows[nearestReadingIndex(rows, time, range)];
+    this.selectedKey.set(row ? rowKey(row) : null);
   }
 
-  private focusReading(row: HistoryRow, grid: DOMRect): void {
-    const range = this.range();
-    const box = this.canvas().nativeElement.getBoundingClientRect();
-    const axis = this.options().yaxis;
-    const min = axis.min as number,
-      max = axis.max as number;
+  protected clearSelection(): void {
+    this.selectedKey.set(null);
+  }
+
+  protected renderSelection(): void {
+    const chart = this.chart();
+    chart?.removeAnnotation('history-selection-time');
+    chart?.removeAnnotation('history-selection-point');
+    const row = this.selected();
+    if (!row || !chart) return;
+    const x = readingTime(row);
+    if (x < this.range().min || x > this.range().max) return;
+    chart.addXaxisAnnotation(
+      { id: 'history-selection-time', x, borderColor: '#69776e', strokeDashArray: 4 },
+      false,
+    );
+    if (row.value === null) return;
     const measurement = this.measurements().find(({ tag }) => tag.id === row.tag_id)!;
-    const value = row.value === null ? null : plotValue(measurement.tag, row.value);
-    const plotted =
-      value === null ? min : this.relative() ? measurement.scale.normalize(value) : value;
-    this.hover.set({
-      row,
-      x:
-        grid.left -
-        box.left +
-        ((readingTime(row) - range.min) / (range.max - range.min)) * grid.width,
-      y: grid.top - box.top + (1 - (plotted - min) / (max - min)) * grid.height,
-      left: grid.left - box.left,
-      top: grid.top - box.top,
-      width: grid.width,
-      height: grid.height,
-    });
+    const value = plotValue(measurement.tag, row.value);
+    chart.addPointAnnotation(
+      {
+        id: 'history-selection-point',
+        x,
+        y: this.relative() ? measurement.scale.normalize(value) : value,
+        marker: { size: 4, fillColor: measurement.color, strokeColor: '#fff', strokeWidth: 2 },
+      },
+      false,
+    );
   }
 
   protected inspectKey(event: KeyboardEvent): void {
     if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 'Escape') {
-      this.hover.set(null);
+      event.stopPropagation();
+      this.selectedKey.set(null);
       return;
     }
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     const rows = this.visible();
-    const grid = this.canvas()
-      .nativeElement.querySelector('.apexcharts-grid')
-      ?.getBoundingClientRect();
-    if (!rows.length || !grid?.width) return;
+    if (!rows.length) return;
     event.preventDefault();
-    const current = rows.findIndex(
-      (row) => rowKey(row) === (this.hover() ? rowKey(this.hover()!.row) : null),
-    );
+    event.stopPropagation();
+    const current = rows.findIndex((row) => rowKey(row) === this.selectedKey());
     const index =
       event.key === 'Home'
         ? 0
@@ -428,27 +422,16 @@ export class HistoryChart {
               0,
               Math.min(
                 rows.length - 1,
-                (current < 0 ? 0 : current) + (event.key === 'ArrowRight' ? 1 : -1),
+                current < 0 ? 0 : current + (event.key === 'ArrowRight' ? 1 : -1),
               ),
             );
-    this.focusReading(rows[index], grid);
+    this.selectedKey.set(rowKey(rows[index]));
   }
 
-  protected ready(): void {
-    // Also refresh the visible count after Fit all expands to include another page.
-    if (this.fit) this.viewport.set(queryRange(this.query()));
-  }
-  protected resetZoom(): void {
-    this.hover.set(null);
-    const range = initialRange(this.ordered(), this.query());
+  protected resetView(): void {
+    this.clearSelection();
+    const range = queryRange(this.query());
     this.recordRange(range);
     this.chart()?.zoomX(range.min, range.max);
-  }
-  protected fitAll(): void {
-    this.hover.set(null);
-    const range = queryRange(this.query());
-    this.chart()?.zoomX(range.min, range.max);
-    this.viewport.set(range);
-    this.fit = true;
   }
 }

@@ -1,40 +1,42 @@
-<div class="chart-legend" aria-label="Telemetry quality legend">
-  <span [class.good]="!multiple()">● {{ aggregated() ? 'Good / averages' : 'Good' }}</span
-  ><span [class.uncertain]="!multiple()">◇ Uncertain</span
-  ><span [class.bad]="!multiple()">× Bad</span>
-  @if (hasUnknownQuality()) {
-    <span>□ Unknown</span>
-  }
+<div class="chart-toolbar">
+  <span class="window-caption" title="Loaded readings in the visible time range">
+    {{ visible().length }} / {{ ordered().length }} loaded
+    {{ aggregated() ? 'buckets' : 'readings' }}
+  </span>
+  <button
+    mat-button
+    type="button"
+    [attr.aria-expanded]="showLegend()"
+    (click)="showLegend.set(!showLegend())"
+  >
+    Legend
+  </button>
   @if (navigable()) {
-    <div class="chart-navigation">
-      <button
-        mat-stroked-button
-        type="button"
-        (click)="resetZoom()"
-        [attr.aria-label]="
-          aggregated() ? 'Reset zoom to 100 buckets' : 'Reset zoom to 100 readings'
-        "
-        [title]="
-          aggregated() ? 'Reset to the first 100 buckets' : 'Reset to the first 100 readings'
-        "
-      >
-        {{ zoomLabel() }}
-      </button>
-      <button mat-stroked-button type="button" (click)="fitAll()">Fit all</button>
-    </div>
+    <button
+      mat-stroked-button
+      type="button"
+      (click)="resetView()"
+      title="Show the full selected time range"
+    >
+      Reset view
+    </button>
   }
 </div>
+@if (showLegend()) {
+  <div class="chart-legend" aria-label="Telemetry quality legend">
+    <span [class.good]="!multiple()">— {{ aggregated() ? 'Good / averages' : 'Good' }}</span>
+    <span [class.uncertain]="!multiple()">◇ Uncertain</span>
+    <span [class.bad]="!multiple()">× Bad</span>
+    @if (hasUnknownQuality()) {
+      <span>□ Unknown</span>
+    }
+  </div>
+}
 @if (multiple()) {
   <div class="measurement-legend" aria-label="Measurements">
     @for (measurement of measurements(); track measurement.tag.id) {
       <span
-        [title]="
-          measurement.rows.length
-            ? measurement.tag.name
-            : measurement.tag.name + ': no loaded readings'
-        "
-      >
-        <i [style.background]="measurement.color"></i>{{ measurement.tag.name }}
+        ><i [style.background]="measurement.color"></i>{{ measurement.tag.name }}
         @if (!measurement.rows.length) {
           <small>· no data</small>
         }
@@ -42,14 +44,17 @@
     }
   </div>
 }
-<div class="window-caption">
-  {{ visible().length }} / {{ ordered().length }} loaded
-  {{ aggregated() ? 'buckets' : 'readings' }} in view
-  @if (relative()) {
-    <span> · Relative range: 0–100% of each measurement’s loaded min–max</span>
-  }
-</div>
-<div #canvas class="chart-canvas" (pointerleave)="hover.set(null)" (keydown)="inspectKey($event)">
+@if (relative()) {
+  <div class="scale-caption">Relative range · 0–100% of each measurement’s loaded min–max</div>
+}
+<div
+  #canvas
+  class="chart-canvas"
+  (pointerdown)="beginPointer($event)"
+  (pointermove)="movePointer($event)"
+  (pointerup)="endPointer($event)"
+  (pointercancel)="cancelPointer()"
+>
   <apx-chart
     [chart]="options().chart"
     [series]="options().series"
@@ -62,56 +67,50 @@
     [dataLabels]="dataLabels"
     [legend]="legend"
     [grid]="grid"
-    (chartReady)="ready()"
+    (chartReady)="renderSelection()"
   />
-  @if (hover(); as focus) {
-    <span
-      class="hover-guide vertical"
-      aria-hidden="true"
-      [style.left.px]="focus.x"
-      [style.top.px]="focus.top"
-      [style.height.px]="focus.height"
-    ></span>
-    @if (focus.row.value !== null) {
-      <span
-        class="hover-guide horizontal"
-        aria-hidden="true"
-        [style.left.px]="focus.left"
-        [style.top.px]="focus.y"
-        [style.width.px]="focus.width"
-      ></span>
-      <span
-        class="hover-point"
-        aria-hidden="true"
-        [style.left.px]="focus.x"
-        [style.top.px]="focus.y"
-      ></span>
-    }
-    <div #tooltip class="reading-tooltip" role="status">
-      @if (multiple()) {
-        <span class="tooltip-heading">{{
-          aggregated() ? 'Selected interval' : 'Nearest observations · individual timestamps'
-        }}</span>
-        <div class="tooltip-readings">
-          @for (item of hoverReadings(); track item.tag.id) {
-            <div
-              class="tooltip-reading"
-              [class.focused]="item.row && rowKey(item.row) === rowKey(focus.row)"
+</div>
+<section
+  class="inspection-panel"
+  [class.has-selection]="selected()"
+  aria-label="Selected reading details"
+  tabindex="0"
+>
+  @if (selected(); as focus) {
+    <div class="inspection-heading">
+      <span>{{
+        multiple()
+          ? aggregated()
+            ? 'Selected interval'
+            : 'Nearest readings · individual times'
+          : 'Selected reading'
+      }}</span>
+      <button
+        mat-button
+        type="button"
+        (click)="clearSelection()"
+        aria-label="Clear selected reading"
+      >
+        Clear
+      </button>
+    </div>
+    <div class="inspection-readings" aria-live="polite" aria-atomic="true">
+      @for (item of selectedReadings(); track item.tag.id) {
+        <div class="inspection-reading">
+          @if (multiple()) {
+            <span class="measurement-name"
+              ><i [style.background]="item.color"></i>{{ item.tag.name }}</span
             >
-              <span class="tooltip-name"
-                ><i [style.background]="item.color"></i>{{ item.tag.name }}</span
-              >
-              @if (item.row; as row) {
-                <app-history-observation [row]="row" [tag]="item.tag" />
-              } @else {
-                <small>No loaded reading in view</small>
-              }
-            </div>
+          }
+          @if (item.row; as row) {
+            <app-history-observation [row]="row" [tag]="item.tag" [compact]="true" />
+          } @else {
+            <small>No loaded reading in view</small>
           }
         </div>
-      } @else {
-        <app-history-observation [row]="focus.row" [tag]="tagMap().get(focus.row.tag_id)!" />
       }
     </div>
+  } @else {
+    <span class="inspection-hint">Tap or hover over the plot to inspect a reading.</span>
   }
-</div>
+</section>

@@ -108,9 +108,21 @@
         @if (pending()) {
           <span class="pending-filters" role="status">Unapplied changes</span>
         }
+        <button
+          mat-button
+          type="button"
+          class="summary-toggle"
+          [attr.aria-expanded]="summaryExpanded()"
+          aria-controls="history-summary"
+          (click)="summaryExpanded.set(!summaryExpanded())"
+        >
+          Summary <span aria-hidden="true">{{ summaryExpanded() ? '⌃' : '⌄' }}</span>
+        </button>
       </div>
       <div
+        id="history-summary"
         class="summary-grid"
+        [class.expanded]="summaryExpanded()"
         [class.comparison]="multiple() || aggregated()"
         aria-label="Loaded reading summary"
       >

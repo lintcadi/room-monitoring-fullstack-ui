@@ -6,14 +6,30 @@
   flex-direction: column;
   gap: 6px;
 }
-.chart-legend {
+.chart-toolbar,
+.chart-legend,
+.inspection-heading {
   display: flex;
   align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+.window-caption {
+  margin-right: auto;
+  font-size: 0.6rem;
+}
+.chart-toolbar button,
+.inspection-heading button {
+  min-width: 0;
+  height: 30px;
+  padding-inline: 8px;
+  font-size: 0.65rem;
+}
+.chart-legend {
   flex-wrap: wrap;
   gap: 12px;
-  font-size: 0.65rem;
-  color: var(--muted);
-  flex-shrink: 0;
 }
 .good {
   color: #267653;
@@ -24,25 +40,10 @@
 .bad {
   color: #a74c3d;
 }
-.chart-navigation {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-}
-.chart-navigation button {
-  min-width: 40px;
-  height: 28px;
-  padding-inline: 8px;
-  font-size: 0.65rem;
-}
-.window-caption {
-  font-size: 0.6rem;
-  color: var(--muted);
-}
 .chart-canvas {
   position: relative;
   flex: 1;
-  min-height: 0;
+  min-height: 120px;
   min-width: 0;
 }
 apx-chart {
@@ -50,70 +51,6 @@ apx-chart {
   position: absolute;
   inset: 0;
 }
-.hover-guide,
-.hover-point,
-.reading-tooltip {
-  position: absolute;
-  pointer-events: none;
-}
-.hover-guide.vertical {
-  border-left: 1px dashed #69776e;
-}
-.hover-guide.horizontal {
-  border-top: 1px dashed #69776e80;
-}
-.hover-point {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--text);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-.reading-tooltip {
-  top: 0;
-  left: 0;
-  visibility: hidden;
-  z-index: 2;
-  width: max-content;
-  max-width: calc(100% - 16px);
-  max-height: calc(100% - 16px);
-  overflow: auto;
-  display: grid;
-  justify-items: start;
-  gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 3px 12px #203f3020;
-  font-size: 0.7rem;
-}
-.reading-tooltip time,
-.reading-tooltip small {
-  color: var(--muted);
-  font-size: 0.6rem;
-  font-weight: 400;
-}
-.reading-tooltip strong {
-  font-size: 1rem;
-  font-weight: 500;
-}
-@media (max-width: 700px) {
-  .chart-legend {
-    font-size: 0.55rem;
-    gap: 6px;
-  }
-  .chart-navigation {
-    gap: 4px;
-  }
-  .chart-navigation button {
-    font-size: 0.55rem;
-    padding-inline: 6px;
-    min-width: 32px;
-    height: 26px;
-  }
-}
-
 .measurement-legend {
   display: flex;
   gap: 14px;
@@ -126,44 +63,56 @@ apx-chart {
   white-space: nowrap;
 }
 .measurement-legend i,
-.tooltip-name i {
+.measurement-name i {
   display: inline-block;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   margin-right: 5px;
 }
-.reading-tooltip.scrollable {
-  pointer-events: auto;
-}
-.tooltip-heading {
-  font-size: 0.6rem;
+.scale-caption,
+.inspection-hint,
+.inspection-reading > small {
   color: var(--muted);
+  font-size: 0.6rem;
 }
-.tooltip-readings {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 16px;
+.inspection-panel {
+  flex: 0 0 80px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
 }
-.tooltip-reading {
+.inspection-heading {
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.inspection-readings {
   display: grid;
-  justify-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.inspection-reading {
+  display: grid;
+  align-content: start;
   gap: 4px;
+  min-width: 0;
 }
-.tooltip-reading.focused .tooltip-name {
-  font-weight: 600;
-}
-.tooltip-reading strong {
-  font-size: 0.8rem;
-}
-.tooltip-name {
+.measurement-name {
   font-size: 0.65rem;
 }
 @media (max-width: 700px) {
-  .tooltip-readings {
-    grid-template-columns: minmax(0, 1fr);
+  .chart-toolbar {
+    gap: 4px;
   }
-  .reading-tooltip {
-    padding: 8px;
+  .window-caption {
+    font-size: 0.55rem;
+  }
+  .chart-toolbar button {
+    font-size: 0.6rem;
+    padding-inline: 6px;
+  }
+  .inspection-readings {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

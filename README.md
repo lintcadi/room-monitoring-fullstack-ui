@@ -28,17 +28,18 @@ intended to join the existing room-monitoring deployment on an NVIDIA Jetson.
   time range. Filter changes take effect when you click **Apply**.
 - Switch between raw readings and 5-minute, hourly, daily, weekly, or monthly
   summaries calculated by the backend, with sample counts and quality details.
-- Explore ApexCharts with zoom, pan, and a starting window of about 100 readings.
+- Explore ApexCharts with zoom and pan, starting at the selected time range.
   Hover horizontally across the plot to inspect nearby observations without
   having to hit an individual point.
 - Compare measurements with different units on a labeled relative scale, while
-  retaining actual values, units, quality, and individual timestamps in hover details.
+  retaining actual values, units, quality, and individual timestamps in the reading details panel.
 - Switch to a paginated readings table or load more history using cursor pagination.
   The interface loads up to 5,000 raw readings or aggregated buckets per query
   across the selected measurements.
 - Displays dates and times in **Asia/Taipei**.
 
-The Live and History pages use responsive layouts that fit the viewport.
+The Live and History pages use responsive layouts. History allows scrolling on
+short screens to keep the plot and reading details usable.
 A CCTV demo page also exists with a disconnected feed, mock controls, and mock
 person-recognition information. Its navigation tab is currently disabled;
 camera streaming and recognition are not implemented.
