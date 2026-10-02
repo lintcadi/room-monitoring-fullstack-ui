@@ -91,9 +91,16 @@ h1 > span {
 .pending-filters {
   color: #7a5715;
 }
-.refresh > span:first-child {
-  font-size: 1.15rem;
-  line-height: 1;
+.refresh-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.refresh-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 .range-caption {
   display: flex;
@@ -292,7 +299,7 @@ footer {
   }
 
   .refresh {
-    padding: 6px 12px;
+    padding: 6px;
     min-height: 34px;
     min-width: 36px;
     width: 36px;
